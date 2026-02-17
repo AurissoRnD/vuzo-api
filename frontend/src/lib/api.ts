@@ -1,6 +1,8 @@
 import { supabase } from './supabase'
 
-const API_BASE = '/v1'
+const API_BASE = import.meta.env.VITE_API_BASE_URL
+  ? `${import.meta.env.VITE_API_BASE_URL}/v1`
+  : '/v1'
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   const { data } = await supabase.auth.getSession()

@@ -29,3 +29,21 @@ services:
         value: "false"
       - key: APP_PORT
         value: "10000"
+
+  - type: web
+    name: vuzo-dashboard
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_SUPABASE_URL
+        sync: false
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+      - key: VITE_API_BASE_URL
+        value: https://vuzo-api.onrender.com
