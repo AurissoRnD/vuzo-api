@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabase'
 
 export default function Register() {
   const navigate = useNavigate()
-  const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -15,14 +14,19 @@ export default function Register() {
     setError('')
     setLoading(true)
 
-    const { error: signUpError } = await supabase.auth.signUp({
+    const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { name } },
     })
 
     if (signUpError) {
       setError(signUpError.message)
+      setLoading(false)
+      return
+    }
+
+    if (!data.session) {
+      setError('Check your email to confirm your account, then sign in.')
       setLoading(false)
       return
     }
@@ -44,17 +48,6 @@ export default function Register() {
               {error}
             </div>
           )}
-
-          <div>
-            <label className="block text-sm font-medium text-zinc-300 mb-1">Name</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-              placeholder="Your name"
-            />
-          </div>
 
           <div>
             <label className="block text-sm font-medium text-zinc-300 mb-1">Email</label>

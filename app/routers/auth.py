@@ -10,7 +10,6 @@ router = APIRouter()
 class RegisterRequest(BaseModel):
     email: str
     password: str
-    name: str = ""
 
 
 class LoginRequest(BaseModel):
@@ -57,7 +56,7 @@ async def register(body: RegisterRequest):
             .insert({
                 "supabase_auth_id": supabase_uid,
                 "email": body.email,
-                "name": body.name or body.email.split("@")[0],
+                "name": body.email.split("@")[0],
             })
             .execute()
         )
