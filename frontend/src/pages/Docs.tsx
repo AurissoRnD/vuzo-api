@@ -353,9 +353,74 @@ while (true) {
           </Section>
 
           <Section id="sdks" title="SDKs & Tools">
+            <div className="p-4 bg-gradient-to-r from-indigo-950/50 to-purple-950/30 border border-indigo-900/50 rounded-lg mb-6">
+              <div className="flex gap-3">
+                <div className="bg-indigo-600 rounded-lg p-2.5 shrink-0">
+                  <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                  </svg>
+                </div>
+                <div>
+                  <h4 className="text-white font-semibold mb-1">Official Vuzo Python SDK (Recommended)</h4>
+                  <p className="text-indigo-300/90 text-sm mb-3">
+                    Simpler API with built-in usage tracking, billing, and key management.
+                  </p>
+                  <CodeBlock
+                    language="bash"
+                    code="pip install vuzo"
+                  />
+                  <div className="mt-3">
+                    <CodeBlock
+                      language="python"
+                      code={`from vuzo import Vuzo
+
+client = Vuzo("vz-sk_your_key_here")
+
+# Simple chat
+response = client.chat.complete("gpt-4o-mini", "Hello!")
+print(response)
+
+# Works with all providers - just change the model!
+response = client.chat.complete("gemini-2.0-flash", "Hello!")
+
+# Check balance
+balance = client.billing.get_balance()
+print(f"Balance: ${balance}")`}
+                    />
+                  </div>
+                  <a 
+                    href="https://github.com/AurissoRnD/vuzo-python"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-indigo-400 hover:text-indigo-300 text-sm font-medium mt-3"
+                  >
+                    View SDK documentation on GitHub
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <h4 className="text-white font-semibold mb-3 mt-8">Alternative: OpenAI SDK</h4>
             <p className="text-zinc-300 mb-4">
-              Vuzo is fully compatible with the official OpenAI SDK. Just change the base URL:
+              Vuzo is also fully compatible with the official OpenAI SDK. Just change the base URL:
             </p>
+            <div className="p-4 bg-blue-950/30 border border-blue-900/50 rounded-lg mb-6">
+              <div className="flex gap-2">
+                <svg className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                  <p className="text-blue-200 font-medium text-sm">One SDK for All Providers</p>
+                  <p className="text-blue-300/80 text-sm mt-1">
+                    The OpenAI SDK works for <strong>all models</strong> including Anthropic (Claude) and Google (Gemini). 
+                    You don't need provider-specific SDKs. Just change the <code className="px-1.5 py-0.5 bg-blue-900/50 rounded text-xs">model</code> parameter.
+                  </p>
+                </div>
+              </div>
+            </div>
             <div className="space-y-4 mb-6">
               <div>
                 <h4 className="text-white font-semibold mb-2">Python</h4>
@@ -371,6 +436,36 @@ while (true) {
                   code="npm install openai"
                 />
               </div>
+            </div>
+            <div className="mb-6">
+              <h4 className="text-white font-semibold mb-3">Switch Between Providers</h4>
+              <CodeBlock
+                language="python"
+                code={`from openai import OpenAI
+
+client = OpenAI(
+    api_key="vz-sk_your_key_here",
+    base_url="${API_BASE}"
+)
+
+# Use OpenAI
+response = client.chat.completions.create(
+    model="gpt-4o-mini",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+
+# Use Anthropic (Claude) - same SDK!
+response = client.chat.completions.create(
+    model="claude-sonnet-4-20250514",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+
+# Use Google (Gemini) - same SDK!
+response = client.chat.completions.create(
+    model="gemini-2.0-flash",
+    messages=[{"role": "user", "content": "Hello!"}]
+)`}
+              />
             </div>
             <div className="p-4 bg-indigo-950/30 border border-indigo-900/50 rounded-lg">
               <div className="flex gap-2">
