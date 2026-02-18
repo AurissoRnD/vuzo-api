@@ -29,6 +29,7 @@ app.add_middleware(
         settings.frontend_url,
         "http://localhost:5173",
         "https://vuzo-dashboard.onrender.com",
+        "https://vuzo-api-1.onrender.com",
     ],
     allow_credentials=True,
     allow_methods=["*"],
