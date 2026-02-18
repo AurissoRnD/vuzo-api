@@ -169,6 +169,7 @@ while (true) {
             <NavLink href="#errors">Error Handling</NavLink>
             <NavLink href="#rate-limits">Rate Limits</NavLink>
             <NavLink href="#sdks">SDKs & Tools</NavLink>
+            <NavLink href="#openclaw">OpenClaw</NavLink>
           </nav>
         </aside>
 
@@ -521,6 +522,80 @@ response = client.chat.completions.create(
                     Download <code className="px-1.5 py-0.5 bg-indigo-900/50 rounded text-xs">test_key.py</code> from our GitHub repo to quickly test your API key across all providers.
                   </p>
                 </div>
+              </div>
+            </div>
+          </Section>
+
+          <Section id="openclaw" title="OpenClaw Integration">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-4xl" role="img" aria-label="lobster">🦞</span>
+              <p className="text-zinc-300">
+                <a href="https://openclaw.ai" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 font-medium">OpenClaw</a> is an open-source personal AI agent that supports a custom OpenAI base URL.
+                Point it at Vuzo and all your OpenClaw sessions are billed through your Vuzo credits — no separate provider keys needed.
+              </p>
+            </div>
+
+            <h4 className="text-white font-semibold mb-3">Setup</h4>
+            <p className="text-zinc-300 mb-3">
+              OpenClaw uses the OpenAI SDK internally. Set these two environment variables and it routes all requests through Vuzo automatically:
+            </p>
+            <CodeBlock
+              language="bash"
+              code={`OPENAI_API_KEY="vz-sk_your_key_here"
+OPENAI_BASE_URL="${API_BASE}"`}
+            />
+
+            <h4 className="text-white font-semibold mt-6 mb-3">Model Compatibility</h4>
+            <div className="space-y-3 mb-6">
+              <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center">
+                    <svg className="w-3 h-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </span>
+                  <div>
+                    <p className="text-white font-medium text-sm">OpenAI models — fully compatible</p>
+                    <p className="text-zinc-400 text-sm mt-0.5">gpt-4o, gpt-4o-mini, gpt-4.1, gpt-4.1-mini, gpt-4.1-nano</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center">
+                    <svg className="w-3 h-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                    </svg>
+                  </span>
+                  <div>
+                    <p className="text-white font-medium text-sm">xAI (Grok) models — fully compatible</p>
+                    <p className="text-zinc-400 text-sm mt-0.5">grok-3, grok-3-mini, grok-2</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center">
+                    <svg className="w-3 h-3 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01" />
+                    </svg>
+                  </span>
+                  <div>
+                    <p className="text-white font-medium text-sm">Google (Gemini) models — coming soon</p>
+                    <p className="text-zinc-400 text-sm mt-0.5">Response normalization in progress. Use OpenAI or Grok models with OpenClaw for now.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-4 bg-indigo-950/30 border border-indigo-900/50 rounded-lg">
+              <div className="flex gap-2">
+                <svg className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-indigo-300/90 text-sm">
+                  This same two-variable trick works with <strong className="text-indigo-200">any</strong> OpenAI-SDK-based tool — LangChain, LlamaIndex, Cursor, and more.
+                </p>
               </div>
             </div>
           </Section>
