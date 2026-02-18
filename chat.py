@@ -23,16 +23,16 @@ except ImportError:
 VUZO_BASE_URL = "http://localhost:8000/v1"
 
 MODELS = {
-    "1": ("gpt-4o",                    "OpenAI     — GPT-4o (flagship)"),
-    "2": ("gpt-4o-mini",               "OpenAI     — GPT-4o Mini (fast & cheap)"),
-    "3": ("gpt-4.1",                   "OpenAI     — GPT-4.1"),
-    "4": ("gpt-4.1-mini",              "OpenAI     — GPT-4.1 Mini"),
-    "5": ("gpt-4.1-nano",              "OpenAI     — GPT-4.1 Nano (cheapest)"),
-    "6": ("claude-sonnet-4-20250514",  "Anthropic  — Claude Sonnet 4"),
-    "7": ("claude-haiku-4-5",          "Anthropic  — Claude Haiku 4.5"),
-    "8": ("claude-opus-4-5",           "Anthropic  — Claude Opus 4.5"),
-    "9": ("gemini-2.0-flash",          "Google     — Gemini 2.0 Flash (cheapest)"),
-    "10": ("gemini-3-flash",           "Google     — Gemini 3 Flash"),
+    "1": ("gpt-4o",           "OpenAI  — GPT-4o (flagship)"),
+    "2": ("gpt-4o-mini",      "OpenAI  — GPT-4o Mini (fast & cheap)"),
+    "3": ("gpt-4.1",          "OpenAI  — GPT-4.1"),
+    "4": ("gpt-4.1-mini",     "OpenAI  — GPT-4.1 Mini"),
+    "5": ("gpt-4.1-nano",     "OpenAI  — GPT-4.1 Nano (cheapest)"),
+    "6": ("grok-3",           "xAI     — Grok 3 (flagship)"),
+    "7": ("grok-3-mini",      "xAI     — Grok 3 Mini"),
+    "8": ("grok-2",           "xAI     — Grok 2"),
+    "9": ("gemini-2.0-flash", "Google  — Gemini 2.0 Flash (cheapest)"),
+    "10": ("gemini-3-flash",  "Google  — Gemini 3 Flash"),
 }
 
 

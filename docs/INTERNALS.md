@@ -17,7 +17,7 @@ User Application
 │          Vuzo API Server         │
 │                                  │
 │  1. Rate limiter checks RPM      │
-│  2. Auth middleware validates key │
+│  2. Auth middleware validates key│
 │  3. Look up model pricing in DB  │
 │  4. Check user credit balance    │
 │  5. Route to correct provider    │

@@ -7,6 +7,22 @@ const API_BASE = 'https://vuzo-api.onrender.com/v1'
 export default function Docs() {
   const quickstartExamples = [
     {
+      label: 'Vuzo SDK',
+      language: 'python',
+      code: `# pip install vuzo
+from vuzo import Vuzo
+
+client = Vuzo("vz-sk_your_key_here")
+
+# Simple chat — works with any model
+response = client.chat.complete("gpt-4o-mini", "Hello!")
+print(response)
+
+# Switch providers by changing the model name
+response = client.chat.complete("gemini-2.0-flash", "Hello!")
+response = client.chat.complete("grok-3-mini", "Hello!")`,
+    },
+    {
       label: 'Python (OpenAI SDK)',
       language: 'python',
       code: `from openai import OpenAI
@@ -137,7 +153,7 @@ while (true) {
       <div className="mb-10">
         <h1 className="text-4xl font-bold text-white mb-3">Documentation</h1>
         <p className="text-zinc-400 text-lg">
-          Learn how to integrate Vuzo API into your applications. One API key for OpenAI, Anthropic, and Google models.
+          Learn how to integrate Vuzo API into your applications. One API key for OpenAI, xAI (Grok), and Google models.
         </p>
       </div>
 
@@ -255,7 +271,7 @@ while (true) {
 
           <Section id="models" title="Available Models">
             <p className="text-zinc-300 mb-4">
-              Vuzo supports models from OpenAI, Anthropic, and Google. Switch between providers by changing the <code className="px-2 py-1 bg-zinc-900 border border-zinc-800 rounded text-sm">model</code> parameter.
+              Vuzo supports models from OpenAI, xAI (Grok), and Google. Switch between providers by changing the <code className="px-2 py-1 bg-zinc-900 border border-zinc-800 rounded text-sm">model</code> parameter.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <ModelCard
@@ -263,8 +279,8 @@ while (true) {
                 models={['gpt-4o', 'gpt-4o-mini', 'gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano']}
               />
               <ModelCard
-                provider="Anthropic"
-                models={['claude-sonnet-4-20250514', 'claude-haiku-4-5', 'claude-opus-4-5']}
+                provider="xAI"
+                models={['grok-3', 'grok-3-mini', 'grok-2']}
               />
               <ModelCard
                 provider="Google"
@@ -360,8 +376,21 @@ while (true) {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
                   </svg>
                 </div>
-                <div>
-                  <h4 className="text-white font-semibold mb-1">Official Vuzo Python SDK (Recommended)</h4>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-1 flex-wrap">
+                    <h4 className="text-white font-semibold">Official Vuzo Python SDK (Recommended)</h4>
+                    <a
+                      href="https://pypi.org/project/vuzo/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-indigo-900/60 hover:bg-indigo-800/60 border border-indigo-700/50 rounded text-xs text-indigo-300 font-medium transition-colors"
+                    >
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
+                      </svg>
+                      PyPI
+                    </a>
+                  </div>
                   <p className="text-indigo-300/90 text-sm mb-3">
                     Simpler API with built-in usage tracking, billing, and key management.
                   </p>
@@ -382,23 +411,37 @@ print(response)
 
 # Works with all providers - just change the model!
 response = client.chat.complete("gemini-2.0-flash", "Hello!")
+response = client.chat.complete("grok-3-mini", "Hello!")
 
 # Check balance
 balance = client.billing.get_balance()
-print(f"Balance: ${balance}")`}
+print(f"Balance: \${balance}")`}
                     />
                   </div>
-                  <a 
-                    href="https://github.com/AurissoRnD/vuzo-python"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-indigo-400 hover:text-indigo-300 text-sm font-medium mt-3"
-                  >
-                    View SDK documentation on GitHub
-                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                  </a>
+                  <div className="flex items-center gap-4 mt-3 flex-wrap">
+                    <a
+                      href="https://pypi.org/project/vuzo/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-indigo-400 hover:text-indigo-300 text-sm font-medium"
+                    >
+                      View on PyPI
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                    <a
+                      href="https://github.com/AurissoRnD/vuzo-python"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-indigo-400 hover:text-indigo-300 text-sm font-medium"
+                    >
+                      GitHub
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
@@ -415,7 +458,7 @@ print(f"Balance: ${balance}")`}
                 <div>
                   <p className="text-blue-200 font-medium text-sm">One SDK for All Providers</p>
                   <p className="text-blue-300/80 text-sm mt-1">
-                    The OpenAI SDK works for <strong>all models</strong> including Anthropic (Claude) and Google (Gemini). 
+                    The OpenAI SDK works for <strong>all models</strong> including xAI (Grok) and Google (Gemini). 
                     You don't need provider-specific SDKs. Just change the <code className="px-1.5 py-0.5 bg-blue-900/50 rounded text-xs">model</code> parameter.
                   </p>
                 </div>
@@ -454,9 +497,9 @@ response = client.chat.completions.create(
     messages=[{"role": "user", "content": "Hello!"}]
 )
 
-# Use Anthropic (Claude) - same SDK!
+# Use xAI (Grok) - same SDK!
 response = client.chat.completions.create(
-    model="claude-sonnet-4-20250514",
+    model="grok-3-mini",
     messages=[{"role": "user", "content": "Hello!"}]
 )
 
