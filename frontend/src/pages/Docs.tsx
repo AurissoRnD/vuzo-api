@@ -539,9 +539,19 @@ response = client.chat.completions.create(
             <p className="text-zinc-300 mb-3">
               OpenClaw uses the OpenAI SDK internally. Set these two environment variables and it routes all requests through Vuzo automatically:
             </p>
+            <div className="mb-3 p-3 bg-emerald-950/30 border border-emerald-900/50 rounded-lg">
+              <div className="flex gap-2">
+                <svg className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <p className="text-emerald-300/90 text-sm">
+                  <strong className="text-emerald-200">No OpenAI account needed.</strong> The variable is named <code className="px-1.5 py-0.5 bg-emerald-900/50 rounded text-xs">OPENAI_API_KEY</code> because that's what OpenClaw's SDK looks for — but you put your <strong className="text-emerald-200">Vuzo key</strong> (<code className="px-1.5 py-0.5 bg-emerald-900/50 rounded text-xs">vz-sk_...</code>) in it. Vuzo handles everything from there.
+                </p>
+              </div>
+            </div>
             <CodeBlock
               language="bash"
-              code={`OPENAI_API_KEY="vz-sk_your_key_here"
+              code={`OPENAI_API_KEY="vz-sk_your_key_here"   # your Vuzo key, not an OpenAI key
 OPENAI_BASE_URL="${API_BASE}"`}
             />
 
