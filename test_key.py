@@ -2,7 +2,8 @@
 """
 Vuzo API Key Test Script
 ========================
-Tests your Vuzo API key by sending a request to one model from each provider.
+Tests your Vuzo API key by sending a request to one model from each provider
+and prints the response, token usage, and cost charged.
 
 Usage:
     python test_key.py <your-vuzo-api-key>
@@ -10,21 +11,52 @@ Usage:
 """
 
 import sys
-import json
 import requests
+from decimal import Decimal
 
 VUZO_BASE_URL = "http://localhost:8000/v1"
 
 TEST_MODELS = [
-    ("openai", "gpt-4o-mini"),
-    ("xai", "grok-3-mini"),
-    ("google", "gemini-2.0-flash"),
+    ("OpenAI", "gpt-4o-mini"),
+    ("xAI", "grok-3-mini"),
+    ("Google", "gemini-2.0-flash"),
 ]
 
 TEST_MESSAGE = "Say hello and tell me what model you are in one short sentence."
 
 
-def test_model(api_key: str, provider: str, model: str) -> None:
+def fetch_pricing() -> dict[str, dict]:
+    """Fetch model pricing from /v1/models and return a dict keyed by model name."""
+    try:
+        resp = requests.get(f"{VUZO_BASE_URL}/models", timeout=10)
+        resp.raise_for_status()
+        return {
+            m["model_name"]: m
+            for m in resp.json()
+        }
+    except Exception:
+        return {}
+
+
+def calculate_cost(
+    input_tokens: int,
+    output_tokens: int,
+    pricing: dict,
+) -> str:
+    """Calculate Vuzo cost string from token counts and pricing info."""
+    inp_price = Decimal(str(pricing.get("vuzo_input_price_per_million", 0)))
+    out_price = Decimal(str(pricing.get("vuzo_output_price_per_million", 0)))
+    million = Decimal("1000000")
+    cost = (Decimal(input_tokens) * inp_price + Decimal(output_tokens) * out_price) / million
+    return f"${cost:.6f}"
+
+
+def test_model(
+    api_key: str,
+    provider: str,
+    model: str,
+    pricing: dict[str, dict],
+) -> None:
     print(f"\n{'─' * 50}")
     print(f"  Provider: {provider}")
     print(f"  Model:    {model}")
@@ -66,6 +98,13 @@ def test_model(api_key: str, provider: str, model: str) -> None:
         print(f"  Response: {content.strip()[:200]}")
         print(f"  Tokens:   {input_tok} input + {output_tok} output = {input_tok + output_tok} total")
 
+        model_pricing = pricing.get(model)
+        if model_pricing:
+            cost_str = calculate_cost(input_tok, output_tok, model_pricing)
+            print(f"  Cost:     {cost_str}")
+        else:
+            print("  Cost:     (pricing unavailable)")
+
     except requests.ConnectionError:
         print("  ERROR: Could not connect. Is the Vuzo server running on localhost:8000?")
     except requests.Timeout:
@@ -86,7 +125,6 @@ def main():
     print(f"\nTesting Vuzo API key: {api_key[:12]}...")
     print(f"Server: {VUZO_BASE_URL}")
 
-    # Check server health first
     try:
         health = requests.get(f"{VUZO_BASE_URL.replace('/v1', '')}/health", timeout=5)
         if health.status_code == 200:
@@ -97,8 +135,14 @@ def main():
         print("Server: NOT REACHABLE -- start it with 'python run.py'")
         sys.exit(1)
 
+    pricing = fetch_pricing()
+    if pricing:
+        print(f"Pricing: loaded for {len(pricing)} models")
+    else:
+        print("Pricing: could not load (cost won't be shown)")
+
     for provider, model in TEST_MODELS:
-        test_model(api_key, provider, model)
+        test_model(api_key, provider, model, pricing)
 
     print(f"\n{'─' * 50}")
     print("Done! Check your usage at http://localhost:5173/usage")

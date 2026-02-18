@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { api } from '../lib/api'
 
 interface ModelPricing {
@@ -43,6 +44,32 @@ export default function Models() {
       <p className="text-zinc-400 text-sm mb-6">
         All prices shown per 1,000,000 tokens. Vuzo pricing includes a {models[0]?.vuzo_markup_percent ?? 20}% markup.
       </p>
+
+      <div className="bg-gradient-to-br from-indigo-950/50 to-purple-950/30 border border-indigo-900/50 rounded-xl p-6 mb-8">
+        <div className="flex items-start gap-4">
+          <div className="bg-indigo-600 rounded-lg p-3 shrink-0">
+            <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+            </svg>
+          </div>
+          <div className="flex-1">
+            <h3 className="text-xl font-semibold text-white mb-2">New to Vuzo?</h3>
+            <p className="text-zinc-300 text-sm mb-4">
+              Learn how to integrate Vuzo into your application with our comprehensive documentation. 
+              Get started with code examples in Python, JavaScript, and more.
+            </p>
+            <Link
+              to="/docs"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              View Documentation
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
+        </div>
+      </div>
 
       {Object.entries(grouped).map(([provider, providerModels]) => (
         <div key={provider} className="mb-6">

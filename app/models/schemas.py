@@ -134,6 +134,16 @@ class UsageSummary(BaseModel):
     total_vuzo_cost: float
 
 
+class DailyUsageItem(BaseModel):
+    date: str
+    model: str
+    provider: str
+    total_requests: int
+    input_tokens: int
+    output_tokens: int
+    total_cost: float
+
+
 # ── Models listing ──────────────────────────────────────────
 
 class ModelPricingItem(BaseModel):

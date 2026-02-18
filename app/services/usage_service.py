@@ -1,4 +1,14 @@
+from collections import defaultdict
+
 from app.models.database import get_supabase
+
+
+def _apply_date_filters(query, start_date: str | None, end_date: str | None):
+    if start_date:
+        query = query.gte("created_at", start_date)
+    if end_date:
+        query = query.lte("created_at", end_date)
+    return query
 
 
 def log_usage(
@@ -35,6 +45,8 @@ def get_usage_logs(
     user_id: str,
     model: str | None = None,
     provider: str | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
     limit: int = 50,
     offset: int = 0,
 ) -> list[dict]:
@@ -49,6 +61,7 @@ def get_usage_logs(
         query = query.eq("model", model)
     if provider:
         query = query.eq("provider", provider)
+    query = _apply_date_filters(query, start_date, end_date)
 
     result = (
         query.order("created_at", desc=True)
@@ -58,23 +71,26 @@ def get_usage_logs(
     return result.data or []
 
 
-def get_usage_summary(user_id: str) -> dict:
+def get_usage_summary(
+    user_id: str,
+    start_date: str | None = None,
+    end_date: str | None = None,
+) -> dict:
     """
     Get aggregated usage summary for a user.
-    Since Supabase client doesn't support raw aggregate SQL easily,
-    we fetch all records and aggregate in Python.
-    For production, consider a Supabase RPC function.
+    Optionally scoped to a date range.
     """
     sb = get_supabase()
-    result = (
+    query = (
         sb.table("usage_logs")
         .select("input_tokens, output_tokens, total_tokens, provider_cost, vuzo_cost")
         .eq("user_id", user_id)
-        .execute()
     )
+    query = _apply_date_filters(query, start_date, end_date)
+    result = query.execute()
     rows = result.data or []
 
-    summary = {
+    return {
         "total_requests": len(rows),
         "total_input_tokens": sum(r["input_tokens"] for r in rows),
         "total_output_tokens": sum(r["output_tokens"] for r in rows),
@@ -82,4 +98,48 @@ def get_usage_summary(user_id: str) -> dict:
         "total_provider_cost": sum(float(r["provider_cost"]) for r in rows),
         "total_vuzo_cost": sum(float(r["vuzo_cost"]) for r in rows),
     }
-    return summary
+
+
+def get_daily_usage(
+    user_id: str,
+    model: str | None = None,
+    provider: str | None = None,
+    start_date: str | None = None,
+    end_date: str | None = None,
+) -> list[dict]:
+    """Aggregate usage logs by day + model."""
+    sb = get_supabase()
+    query = (
+        sb.table("usage_logs")
+        .select("created_at, model, provider, input_tokens, output_tokens, vuzo_cost")
+        .eq("user_id", user_id)
+    )
+    if model:
+        query = query.eq("model", model)
+    if provider:
+        query = query.eq("provider", provider)
+    query = _apply_date_filters(query, start_date, end_date)
+    result = query.order("created_at", desc=True).execute()
+    rows = result.data or []
+
+    buckets: dict[tuple[str, str, str], dict] = defaultdict(
+        lambda: {"total_requests": 0, "input_tokens": 0, "output_tokens": 0, "total_cost": 0.0}
+    )
+    for r in rows:
+        day = r["created_at"][:10]
+        key = (day, r["model"], r["provider"])
+        b = buckets[key]
+        b["total_requests"] += 1
+        b["input_tokens"] += r["input_tokens"]
+        b["output_tokens"] += r["output_tokens"]
+        b["total_cost"] += float(r["vuzo_cost"])
+
+    daily = []
+    for (day, mdl, prov), agg in sorted(buckets.items(), key=lambda x: x[0][0], reverse=True):
+        daily.append({
+            "date": day,
+            "model": mdl,
+            "provider": prov,
+            **agg,
+        })
+    return daily
