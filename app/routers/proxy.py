@@ -11,6 +11,7 @@ from app.services.usage_service import log_usage
 from app.services.providers.openai import OpenAIProvider
 from app.services.providers.xai import XAIProvider
 from app.services.providers.google import GoogleProvider
+from app.services.providers.anthropic import AnthropicProvider
 from app.utils.pricing import calculate_cost
 
 router = APIRouter()
@@ -18,7 +19,8 @@ router = APIRouter()
 _openai = OpenAIProvider()
 _xai = XAIProvider()
 _google = GoogleProvider()
-_providers = [_openai, _xai, _google]
+_anthropic = AnthropicProvider()
+_providers = [_openai, _xai, _google, _anthropic]
 
 
 def _get_provider(model: str):

@@ -1,4 +1,6 @@
 import json
+import time
+import uuid
 from typing import AsyncIterator
 
 from app.models.database import get_http_client
@@ -36,10 +38,12 @@ class GoogleProvider(BaseProvider):
         data = resp.json()
 
         usage_meta = data.get("usageMetadata", {})
+        input_tokens = usage_meta.get("promptTokenCount", 0)
+        output_tokens = usage_meta.get("candidatesTokenCount", 0)
         return ProviderUsageResult(
-            input_tokens=usage_meta.get("promptTokenCount", 0),
-            output_tokens=usage_meta.get("candidatesTokenCount", 0),
-            provider_response=data,
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            provider_response=self._normalize_response(data, request.model, input_tokens, output_tokens),
         )
 
     async def chat_completion_stream(
@@ -51,6 +55,8 @@ class GoogleProvider(BaseProvider):
 
         payload = self._build_payload(request)
         usage_result: ProviderUsageResult | None = None
+        stream_id = f"chatcmpl-{uuid.uuid4().hex[:24]}"
+        created = int(time.time())
 
         async with client.stream(
             "POST",
@@ -76,15 +82,61 @@ class GoogleProvider(BaseProvider):
                         provider_response=chunk,
                     )
 
-                sse_line = f"data: {data_str}\n\n"
-
                 has_finish = False
+                finish_reason = None
                 for candidate in chunk.get("candidates", []):
                     if candidate.get("finishReason"):
                         has_finish = True
+                        finish_reason = "stop"
                         break
 
-                yield sse_line, (usage_result if has_finish else None)
+                text = ""
+                for candidate in chunk.get("candidates", []):
+                    for part in candidate.get("content", {}).get("parts", []):
+                        text += part.get("text", "")
+
+                openai_chunk = {
+                    "id": stream_id,
+                    "object": "chat.completion.chunk",
+                    "created": created,
+                    "model": request.model,
+                    "choices": [{
+                        "index": 0,
+                        "delta": {"content": text} if text else {},
+                        "finish_reason": finish_reason,
+                    }],
+                }
+                yield f"data: {json.dumps(openai_chunk)}\n\n", (usage_result if has_finish else None)
+
+        yield "data: [DONE]\n\n", None
+
+    def _normalize_response(self, data: dict, model: str, input_tokens: int, output_tokens: int) -> dict:
+        text = ""
+        finish_reason = "stop"
+        candidates = data.get("candidates", [])
+        if candidates:
+            candidate = candidates[0]
+            for part in candidate.get("content", {}).get("parts", []):
+                text += part.get("text", "")
+            raw_finish = candidate.get("finishReason", "STOP")
+            finish_reason = "stop" if raw_finish in ("STOP", "MAX_TOKENS") else raw_finish.lower()
+
+        return {
+            "id": f"chatcmpl-{uuid.uuid4().hex[:24]}",
+            "object": "chat.completion",
+            "created": int(time.time()),
+            "model": model,
+            "choices": [{
+                "index": 0,
+                "message": {"role": "assistant", "content": text},
+                "finish_reason": finish_reason,
+            }],
+            "usage": {
+                "prompt_tokens": input_tokens,
+                "completion_tokens": output_tokens,
+                "total_tokens": input_tokens + output_tokens,
+            },
+        }
 
     def _build_payload(self, request: ChatCompletionRequest) -> dict:
         contents = []
