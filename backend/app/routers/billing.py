@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.models.schemas import (
     BalanceResponse,
@@ -8,6 +8,7 @@ from app.models.schemas import (
 )
 from app.dependencies import get_current_user_id
 from app.services.billing_service import get_balance, add_credits, get_transactions
+from app.config import get_settings
 
 router = APIRouter()
 
@@ -25,10 +26,15 @@ async def topup_credits(
     user_id: str = Depends(get_current_user_id),
 ):
     """
-    Add credits to the user's balance.
-    In production, use the Polar checkout flow instead.
-    This endpoint is kept for testing / admin use.
+    Add credits directly to the user's balance.
+    Disabled in production — use the Polar checkout flow (POST /v1/billing/checkout) instead.
+    Only available in development/testing environments.
     """
+    if get_settings().app_env == "production":
+        raise HTTPException(
+            status_code=403,
+            detail="Direct top-up is disabled in production. Use the Polar checkout flow instead.",
+        )
     new_balance, tx_id = add_credits(user_id, body.amount)
     return TopUpResponse(
         user_id=user_id,

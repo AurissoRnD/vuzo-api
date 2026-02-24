@@ -14,9 +14,12 @@ router = APIRouter()
 POLAR_API_BASE = "https://api.polar.sh/v1"
 
 
+_TIER_MAP = {"10": "polar_product_10", "30": "polar_product_30", "50": "polar_product_50"}
+
+
 class CheckoutRequest(BaseModel):
-    amount: Optional[float] = None
-    product_id: Optional[str] = None
+    tier: Optional[str] = None    # "10" | "30" | "50"  — fixed preset tiers
+    amount: Optional[float] = None  # custom amount in USD (min $10); uses the PWYW product
 
 
 class CheckoutResponse(BaseModel):
@@ -30,30 +33,48 @@ async def create_checkout(
 ):
     """
     Create a Polar checkout session for credit top-up.
-    Either pass a fixed `product_id` (for preset tiers) or an `amount` (for custom).
-    Returns a checkout URL to redirect the user to.
+
+    Preset tiers:  pass tier="10"|"30"|"50". Backend resolves the product ID from config.
+    Custom amount: pass amount=<float> (min $10). Backend uses the PWYW product from config.
+    Product IDs are never sent to or stored in the frontend.
     """
     settings = get_settings()
     if not settings.polar_access_token:
         raise HTTPException(status_code=503, detail="Polar payments not configured")
 
-    if not body.product_id and not body.amount:
-        raise HTTPException(status_code=400, detail="Provide either product_id or amount")
+    if body.tier is None and body.amount is None:
+        raise HTTPException(status_code=400, detail="Provide either 'tier' or 'amount'")
+
+    if body.tier is not None and body.tier not in _TIER_MAP:
+        raise HTTPException(status_code=400, detail=f"Invalid tier '{body.tier}'. Must be one of: {list(_TIER_MAP)}")
+
+    if body.amount is not None and body.amount < 10:
+        raise HTTPException(status_code=400, detail="Minimum top-up amount is $10")
+
+    # Resolve product ID from backend config — never exposed to the client
+    if body.tier is not None:
+        product_id: str = getattr(settings, _TIER_MAP[body.tier], "")
+        if not product_id:
+            raise HTTPException(status_code=503, detail=f"Polar product not configured for tier ${body.tier}")
+    else:
+        product_id = settings.polar_product_custom
+        if not product_id:
+            raise HTTPException(status_code=503, detail="Polar custom-amount product not configured")
 
     client = get_http_client()
 
-    checkout_payload: dict = {
+    payload: dict = {
+        "product_id": product_id,
         "customer_external_id": user_id,
     }
 
-    if body.product_id:
-        checkout_payload["products"] = [body.product_id]
-    elif body.amount:
-        checkout_payload["amount"] = int(body.amount * 100)
+    # Polar expects amount in cents for variable-price ("Pay what you want") products
+    if body.amount is not None:
+        payload["amount"] = int(body.amount * 100)
 
     resp = await client.post(
         f"{POLAR_API_BASE}/checkouts/",
-        json=checkout_payload,
+        json=payload,
         headers={
             "Authorization": f"Bearer {settings.polar_access_token}",
             "Content-Type": "application/json",
@@ -61,12 +82,9 @@ async def create_checkout(
     )
 
     if resp.status_code >= 400:
-        detail = resp.text
-        raise HTTPException(status_code=502, detail=f"Polar checkout failed: {detail}")
+        raise HTTPException(status_code=502, detail=f"Polar checkout failed: {resp.text}")
 
-    data = resp.json()
-    checkout_url = data.get("url", "")
-
+    checkout_url = resp.json().get("url", "")
     if not checkout_url:
         raise HTTPException(status_code=502, detail="Polar did not return a checkout URL")
 
@@ -98,6 +116,19 @@ async def polar_webhook(request: Request):
 
     if event_type == "order.created":
         order = payload.get("data", {})
+
+        # Only process purchases of the 4 Vuzo top-up products.
+        # Ignore any other products in the same Polar organisation.
+        product_id = order.get("product", {}).get("id", "")
+        vuzo_product_ids = {
+            settings.polar_product_10,
+            settings.polar_product_30,
+            settings.polar_product_50,
+            settings.polar_product_custom,
+        }
+        if product_id not in vuzo_product_ids:
+            return {"received": True}
+
         customer = order.get("customer", {})
         user_id = customer.get("external_id")
         amount_cents = order.get("amount", 0)

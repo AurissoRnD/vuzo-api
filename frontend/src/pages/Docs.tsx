@@ -170,6 +170,12 @@ while (true) {
             <NavLink href="#rate-limits">Rate Limits</NavLink>
             <NavLink href="#sdks">SDKs & Tools</NavLink>
             <NavLink href="#openclaw">OpenClaw</NavLink>
+            <Link
+              to="/sdk-docs"
+              className="block px-3 py-2 text-sm text-indigo-400 hover:text-indigo-300 hover:bg-zinc-900 rounded-lg transition-colors font-medium"
+            >
+              Python SDK Reference →
+            </Link>
           </nav>
         </aside>
 
@@ -442,6 +448,15 @@ print(f"Balance: \${balance}")`}
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                       </svg>
                     </a>
+                    <Link
+                      to="/sdk-docs"
+                      className="inline-flex items-center gap-2 text-indigo-400 hover:text-indigo-300 text-sm font-medium"
+                    >
+                      Full SDK Reference
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </Link>
                   </div>
                 </div>
               </div>
@@ -585,14 +600,14 @@ OPENAI_BASE_URL="${API_BASE}"`}
               </div>
               <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
                 <div className="flex items-start gap-3">
-                  <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center">
-                    <svg className="w-3 h-3 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01" />
+                  <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center">
+                    <svg className="w-3 h-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                     </svg>
                   </span>
                   <div>
-                    <p className="text-white font-medium text-sm">Google (Gemini) models — coming soon</p>
-                    <p className="text-zinc-400 text-sm mt-0.5">Response normalization in progress. Use OpenAI or Grok models with OpenClaw for now.</p>
+                    <p className="text-white font-medium text-sm">Google (Gemini) models — fully compatible</p>
+                    <p className="text-zinc-400 text-sm mt-0.5">gemini-2.0-flash, gemini-3-flash</p>
                   </div>
                 </div>
               </div>

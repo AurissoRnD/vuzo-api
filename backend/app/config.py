@@ -12,6 +12,11 @@ class Settings(BaseSettings):
     # Polar payment integration
     polar_access_token: str = ""
     polar_webhook_secret: str = ""
+    # Polar product IDs — set these in .env, never exposed to the frontend
+    polar_product_10: str = ""
+    polar_product_30: str = ""
+    polar_product_50: str = ""
+    polar_product_custom: str = ""  # "Pay what you want" product for custom amounts
 
     # Frontend URL for CORS
     frontend_url: str = "http://localhost:5173"

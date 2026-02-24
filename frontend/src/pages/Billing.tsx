@@ -17,7 +17,11 @@ interface CheckoutResponse {
   checkout_url: string
 }
 
-const PRESET_AMOUNTS = [5, 10, 25, 50]
+const PRESET_TIERS = [
+  { label: '$10', tier: '10' },
+  { label: '$30', tier: '30' },
+  { label: '$50', tier: '50' },
+]
 
 export default function Billing() {
   const [balance, setBalance] = useState<number>(0)
@@ -43,12 +47,11 @@ export default function Billing() {
 
   useEffect(() => { loadData() }, [])
 
-  const handleCheckout = async (amount: number) => {
+  const handleTierCheckout = async (tier: string) => {
     setCheckingOut(true)
     try {
-      const result = await api.post<CheckoutResponse>('/billing/checkout', { amount })
+      const result = await api.post<CheckoutResponse>('/billing/checkout', { tier })
       window.open(result.checkout_url, '_blank')
-      // Poll for balance update after a delay
       setTimeout(() => loadData(), 5000)
       setTimeout(() => loadData(), 15000)
     } catch (err) {
@@ -58,10 +61,23 @@ export default function Billing() {
     }
   }
 
-  const handleCustomCheckout = () => {
+  const handleCustomCheckout = async () => {
     const amount = parseFloat(customAmount)
-    if (isNaN(amount) || amount <= 0) return
-    handleCheckout(amount)
+    if (isNaN(amount) || amount < 10) {
+      alert('Minimum top-up is $10.')
+      return
+    }
+    setCheckingOut(true)
+    try {
+      const result = await api.post<CheckoutResponse>('/billing/checkout', { amount })
+      window.open(result.checkout_url, '_blank')
+      setTimeout(() => loadData(), 5000)
+      setTimeout(() => loadData(), 15000)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Checkout failed')
+    } finally {
+      setCheckingOut(false)
+    }
   }
 
   if (loading) return <div className="text-zinc-400">Loading...</div>
@@ -81,30 +97,29 @@ export default function Billing() {
         <h3 className="text-lg font-semibold mb-4">Add Credits</h3>
 
         {/* Preset tiers */}
-        <div className="flex flex-wrap gap-3 mb-4">
-          {PRESET_AMOUNTS.map((amount) => (
+        <div className="flex flex-wrap gap-3">
+          {PRESET_TIERS.map((tier) => (
             <button
-              key={amount}
-              onClick={() => handleCheckout(amount)}
+              key={tier.label}
+              onClick={() => handleTierCheckout(tier.tier)}
               disabled={checkingOut}
               className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 border border-zinc-700 rounded-lg text-white font-medium transition-colors"
             >
-              ${amount}
+              {checkingOut ? '...' : tier.label}
             </button>
           ))}
         </div>
-
         {/* Custom amount */}
-        <div className="flex gap-3">
+        <div className="flex gap-3 mt-4">
           <div className="relative flex-1 max-w-xs">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500">$</span>
             <input
               type="number"
               value={customAmount}
               onChange={(e) => setCustomAmount(e.target.value)}
-              placeholder="Custom amount"
-              min="1"
-              step="0.01"
+              placeholder="Min $10"
+              min="10"
+              step="1"
               className="w-full pl-7 pr-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
@@ -113,10 +128,10 @@ export default function Billing() {
             disabled={checkingOut || !customAmount}
             className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-medium rounded-lg transition-colors"
           >
-            {checkingOut ? 'Opening...' : 'Pay'}
+            {checkingOut ? '...' : 'Pay'}
           </button>
         </div>
-        <p className="text-xs text-zinc-500 mt-2">Payments are processed securely via Polar.</p>
+        <p className="text-xs text-zinc-500 mt-3">Payments are processed securely via Polar.</p>
       </div>
 
       {/* Transaction History */}
