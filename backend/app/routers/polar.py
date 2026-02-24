@@ -11,7 +11,12 @@ from app.services.billing_service import add_credits
 
 router = APIRouter()
 
-POLAR_API_BASE = "https://api.polar.sh/v1"
+_POLAR_API_PROD    = "https://api.polar.sh/v1"
+_POLAR_API_SANDBOX = "https://sandbox-api.polar.sh/v1"
+
+
+def _polar_base(settings) -> str:
+    return _POLAR_API_SANDBOX if settings.polar_sandbox else _POLAR_API_PROD
 
 
 _TIER_MAP = {"10": "polar_product_10", "30": "polar_product_30", "50": "polar_product_50"}
@@ -73,7 +78,7 @@ async def create_checkout(
         payload["amount"] = int(body.amount * 100)
 
     resp = await client.post(
-        f"{POLAR_API_BASE}/checkouts/",
+        f"{_polar_base(settings)}/checkouts/",
         json=payload,
         headers={
             "Authorization": f"Bearer {settings.polar_access_token}",

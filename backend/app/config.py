@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     # Polar payment integration
     polar_access_token: str = ""
     polar_webhook_secret: str = ""
+    polar_sandbox: bool = False  # set to true to use sandbox-api.polar.sh instead of api.polar.sh
     # Polar product IDs — set these in .env, never exposed to the frontend
     polar_product_10: str = ""
     polar_product_30: str = ""

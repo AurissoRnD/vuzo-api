@@ -1,8 +1,27 @@
+import { useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import LanguageTabs from '../components/docs/LanguageTabs'
 import CodeBlock from '../components/docs/CodeBlock'
+import { supabase } from '../lib/supabase'
 
-const API_BASE = 'https://vuzo-api.onrender.com/v1'
+const API_BASE = import.meta.env.VITE_API_BASE_URL
+  ? `${import.meta.env.VITE_API_BASE_URL}/v1`
+  : '/v1'
+
+const PLAYGROUND_MODELS = [
+  { group: 'OpenAI',  id: 'gpt-4o' },
+  { group: 'OpenAI',  id: 'gpt-4o-mini' },
+  { group: 'OpenAI',  id: 'gpt-4.1' },
+  { group: 'OpenAI',  id: 'gpt-4.1-mini' },
+  { group: 'OpenAI',  id: 'gpt-4.1-nano' },
+  { group: 'xAI',     id: 'grok-3' },
+  { group: 'xAI',     id: 'grok-3-mini' },
+  { group: 'xAI',     id: 'grok-2' },
+  { group: 'Google',  id: 'gemini-2.0-flash' },
+  { group: 'Google',  id: 'gemini-3-flash' },
+  { group: 'Anthropic', id: 'claude-3-5-sonnet-20241022' },
+  { group: 'Anthropic', id: 'claude-3-5-haiku-20241022' },
+]
 
 export default function Docs() {
   const quickstartExamples = [
@@ -160,6 +179,12 @@ while (true) {
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         <aside className="lg:col-span-1">
           <nav className="sticky top-8 space-y-1">
+            <NavLink href="#playground">
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                Try it Live
+              </span>
+            </NavLink>
             <NavLink href="#getting-started">Getting Started</NavLink>
             <NavLink href="#authentication">Authentication</NavLink>
             <NavLink href="#making-requests">Making Requests</NavLink>
@@ -180,6 +205,13 @@ while (true) {
         </aside>
 
         <div className="lg:col-span-3 space-y-12">
+          <Section id="playground" title="Try it — Live Playground">
+            <p className="text-zinc-300 mb-5">
+              Send a real request to any model and see the response here — uses your logged-in account, no copy-pasting required.
+            </p>
+            <ModelPlayground />
+          </Section>
+
           <Section id="getting-started" title="Getting Started">
             <p className="text-zinc-300 mb-4">
               Get up and running with Vuzo in minutes. Follow these steps:
@@ -625,6 +657,225 @@ OPENAI_BASE_URL="${API_BASE}"`}
             </div>
           </Section>
         </div>
+      </div>
+    </div>
+  )
+}
+
+function ModelPlayground() {
+  const [model, setModel] = useState('gpt-4o-mini')
+  const [prompt, setPrompt] = useState('Hello! What can you do?')
+  const [response, setResponse] = useState('')
+  const [usage, setUsage] = useState<{ prompt: number; completion: number; total: number } | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const abortRef = useRef<AbortController | null>(null)
+
+  const handleSend = async () => {
+    if (!prompt.trim() || loading) return
+    setLoading(true)
+    setResponse('')
+    setUsage(null)
+    setError('')
+
+    abortRef.current = new AbortController()
+
+    try {
+      const { data } = await supabase.auth.getSession()
+      const token = data.session?.access_token
+      if (!token) {
+        setError('You must be logged in to use the playground.')
+        return
+      }
+
+      const res = await fetch(`${API_BASE}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: prompt }],
+          stream: true,
+        }),
+        signal: abortRef.current.signal,
+      })
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ detail: res.statusText }))
+        setError(body.detail || `Request failed: ${res.status}`)
+        return
+      }
+
+      const reader = res.body!.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+
+        for (const line of lines) {
+          const trimmed = line.trim()
+          if (!trimmed.startsWith('data:')) continue
+          const raw = trimmed.slice(5).trim()
+          if (raw === '[DONE]') continue
+
+          try {
+            const json = JSON.parse(raw)
+            const content = json.choices?.[0]?.delta?.content
+            if (content) setResponse(prev => prev + content)
+
+            const u = json.usage
+            if (u) {
+              setUsage({
+                prompt: u.prompt_tokens ?? 0,
+                completion: u.completion_tokens ?? 0,
+                total: u.total_tokens ?? 0,
+              })
+            }
+          } catch {
+            // partial chunk — ignore
+          }
+        }
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name !== 'AbortError') {
+        setError(err.message || 'Something went wrong.')
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleStop = () => {
+    abortRef.current?.abort()
+    setLoading(false)
+  }
+
+  // Group models for the <select> optgroups
+  const groups: Record<string, string[]> = {}
+  for (const m of PLAYGROUND_MODELS) {
+    if (!groups[m.group]) groups[m.group] = []
+    groups[m.group].push(m.id)
+  }
+
+  return (
+    <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
+      {/* Controls row */}
+      <div className="flex flex-col sm:flex-row gap-3 p-4 border-b border-zinc-800">
+        <select
+          value={model}
+          onChange={e => setModel(e.target.value)}
+          disabled={loading}
+          className="bg-zinc-800 border border-zinc-700 text-white text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+        >
+          {Object.entries(groups).map(([group, ids]) => (
+            <optgroup key={group} label={group}>
+              {ids.map(id => (
+                <option key={id} value={id}>{id}</option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+
+        <div className="flex items-center gap-2 ml-auto text-xs text-zinc-500">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          Live — uses your account credits
+        </div>
+      </div>
+
+      {/* Prompt area */}
+      <div className="p-4 border-b border-zinc-800">
+        <label className="block text-xs text-zinc-500 mb-2 font-medium uppercase tracking-wide">Prompt</label>
+        <textarea
+          value={prompt}
+          onChange={e => setPrompt(e.target.value)}
+          disabled={loading}
+          rows={3}
+          className="w-full bg-zinc-800 border border-zinc-700 text-white text-sm rounded-lg px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none disabled:opacity-50 placeholder-zinc-600"
+          placeholder="Type your message…"
+          onKeyDown={e => {
+            if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleSend()
+          }}
+        />
+        <p className="text-xs text-zinc-600 mt-1">⌘ Enter to send</p>
+      </div>
+
+      {/* Send / Stop button */}
+      <div className="px-4 py-3 flex items-center gap-3 border-b border-zinc-800">
+        {loading ? (
+          <button
+            onClick={handleStop}
+            className="flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-700/50 text-red-400 text-sm font-medium rounded-lg transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+              <rect x="6" y="6" width="12" height="12" rx="1" />
+            </svg>
+            Stop
+          </button>
+        ) : (
+          <button
+            onClick={handleSend}
+            disabled={!prompt.trim()}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+            Send
+          </button>
+        )}
+
+        {loading && (
+          <span className="flex items-center gap-2 text-xs text-zinc-400">
+            <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+            </svg>
+            Streaming…
+          </span>
+        )}
+      </div>
+
+      {/* Response panel */}
+      <div className="p-4 min-h-[120px]">
+        <label className="block text-xs text-zinc-500 mb-2 font-medium uppercase tracking-wide">Response</label>
+
+        {error && (
+          <div className="flex items-start gap-2 p-3 bg-red-950/30 border border-red-900/50 rounded-lg text-red-400 text-sm">
+            <svg className="w-4 h-4 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+            {error}
+          </div>
+        )}
+
+        {!error && !response && !loading && (
+          <p className="text-zinc-600 text-sm italic">Response will appear here…</p>
+        )}
+
+        {(response || loading) && (
+          <div className="text-zinc-200 text-sm leading-relaxed whitespace-pre-wrap font-mono bg-zinc-800/50 rounded-lg p-3">
+            {response}
+            {loading && (
+              <span className="inline-block w-2 h-4 bg-indigo-400 ml-0.5 animate-pulse align-text-bottom" />
+            )}
+          </div>
+        )}
+
+        {usage && !loading && (
+          <p className="mt-3 text-xs text-zinc-500">
+            tokens — prompt: <span className="text-zinc-400">{usage.prompt}</span>
+            {' · '}completion: <span className="text-zinc-400">{usage.completion}</span>
+            {' · '}total: <span className="text-zinc-400">{usage.total}</span>
+          </p>
+        )}
       </div>
     </div>
   )
