@@ -74,9 +74,16 @@ async def setup_installer(body: InstallerRequest):
                 .execute()
             )
             if new_user.data:
+                uid = new_user.data[0]["id"]
                 sb.table("credits").insert({
-                    "user_id": new_user.data[0]["id"],
-                    "balance": 0,
+                    "user_id": uid,
+                    "balance": 1.00,  # ~500k tokens on mid-range models (free starter allowance)
+                }).execute()
+                sb.table("credit_transactions").insert({
+                    "user_id": uid,
+                    "amount": 1.00,
+                    "type": "topup",
+                    "description": "Free starter allowance — SimplerClaw installer",
                 }).execute()
 
     # --- Step 2: Get the internal user id ---
