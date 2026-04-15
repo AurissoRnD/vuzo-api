@@ -7,10 +7,6 @@ from app.services.key_service import create_api_key
 
 router = APIRouter()
 
-# Free starter credit granted to every new account.
-# Based on Vuzo's blended pricing, $0.40 ≈ 200,000 tokens on mid-range models.
-STARTER_CREDIT_USD = 0.40
-STARTER_TOKEN_ALLOWANCE = 200_000
 
 
 class RegisterRequest(BaseModel):
@@ -75,17 +71,10 @@ async def register(body: RegisterRequest):
         if new_user.data:
             internal_id = new_user.data[0]["id"]
 
-            # Seed credits with 200K token starter allowance
+            # No starter credits — free credits are only granted via the installer
             sb.table("credits").insert({
                 "user_id": internal_id,
-                "balance": STARTER_CREDIT_USD,
-            }).execute()
-
-            sb.table("credit_transactions").insert({
-                "user_id": internal_id,
-                "amount": STARTER_CREDIT_USD,
-                "type": "topup",
-                "description": f"Starter allowance — {STARTER_TOKEN_ALLOWANCE:,} tokens",
+                "balance": 0,
             }).execute()
 
             # Auto-create a starter API key
@@ -104,10 +93,6 @@ async def register(body: RegisterRequest):
         "user_id": supabase_uid,
         "session": session_data,
         "api_key": api_key_data["key"] if api_key_data else None,
-        "starter_credits": {
-            "usd": STARTER_CREDIT_USD,
-            "tokens": STARTER_TOKEN_ALLOWANCE,
-        },
     }
 
 
