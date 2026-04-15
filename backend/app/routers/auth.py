@@ -3,8 +3,14 @@ from pydantic import BaseModel
 
 from app.models.database import get_supabase
 from app.config import get_settings
+from app.services.key_service import create_api_key
 
 router = APIRouter()
+
+# Free starter credit granted to every new account.
+# Based on Vuzo's blended pricing, $0.40 ≈ 200,000 tokens on mid-range models.
+STARTER_CREDIT_USD = 0.40
+STARTER_TOKEN_ALLOWANCE = 200_000
 
 
 class RegisterRequest(BaseModel):
@@ -23,7 +29,11 @@ class RefreshRequest(BaseModel):
 
 @router.post("/register")
 async def register(body: RegisterRequest):
-    """Register a new user via Supabase Auth and create the Vuzo user record."""
+    """
+    Register a new user. Creates a Supabase auth account, a Vuzo user record,
+    a starter API key, and a 200K token credit allowance ($0.40).
+    The API key is returned only once — store it immediately.
+    """
     settings = get_settings()
     from supabase import create_client
 
@@ -50,6 +60,8 @@ async def register(body: RegisterRequest):
         .execute()
     )
 
+    api_key_data = None
+
     if not existing.data:
         new_user = (
             sb.table("users")
@@ -61,10 +73,23 @@ async def register(body: RegisterRequest):
             .execute()
         )
         if new_user.data:
+            internal_id = new_user.data[0]["id"]
+
+            # Seed credits with 200K token starter allowance
             sb.table("credits").insert({
-                "user_id": new_user.data[0]["id"],
-                "balance": 0,
+                "user_id": internal_id,
+                "balance": STARTER_CREDIT_USD,
             }).execute()
+
+            sb.table("credit_transactions").insert({
+                "user_id": internal_id,
+                "amount": STARTER_CREDIT_USD,
+                "type": "topup",
+                "description": f"Starter allowance — {STARTER_TOKEN_ALLOWANCE:,} tokens",
+            }).execute()
+
+            # Auto-create a starter API key
+            api_key_data = create_api_key(user_id=internal_id, name="Default")
 
     session_data = None
     if auth_response.session:
@@ -78,6 +103,11 @@ async def register(body: RegisterRequest):
         "message": "Registration successful",
         "user_id": supabase_uid,
         "session": session_data,
+        "api_key": api_key_data["key"] if api_key_data else None,
+        "starter_credits": {
+            "usd": STARTER_CREDIT_USD,
+            "tokens": STARTER_TOKEN_ALLOWANCE,
+        },
     }
 
 

@@ -8,7 +8,7 @@ from app.services.pricing_service import get_all_models
 
 router = APIRouter()
 
-VUZO_API_BASE_URL = "https://api.vuzo.ai/v1"
+VUZO_API_BASE_URL = "https://vuzo-api.onrender.com/v1"
 
 
 class InstallerRequest(BaseModel):
@@ -31,6 +31,7 @@ async def setup_installer(body: InstallerRequest):
 
     # --- Step 1: Try login first, fall back to register ---
     supabase_uid = None
+    supabase_session = None
     try:
         auth_response = sb_auth.auth.sign_in_with_password({
             "email": body.email,
@@ -38,6 +39,7 @@ async def setup_installer(body: InstallerRequest):
         })
         if auth_response.user:
             supabase_uid = auth_response.user.id
+            supabase_session = auth_response.session
     except Exception:
         pass
 
@@ -55,6 +57,7 @@ async def setup_installer(body: InstallerRequest):
             raise HTTPException(status_code=400, detail="Could not create account. Please try again.")
 
         supabase_uid = auth_response.user.id
+        supabase_session = auth_response.session
 
         # Create Vuzo user + credits row
         existing = (
@@ -98,7 +101,22 @@ async def setup_installer(body: InstallerRequest):
 
     internal_user_id = user_row.data[0]["id"]
 
-    # --- Step 3: Create a named API key ---
+    # --- Step 3: Reuse existing OpenClaw key if present, otherwise create one ---
+    # Keys are hashed and cannot be retrieved after creation, so if one already
+    # exists we revoke it and issue a fresh one. This prevents key accumulation
+    # when a user re-runs the installer.
+    existing_keys = (
+        sb.table("api_keys")
+        .select("id")
+        .eq("user_id", internal_user_id)
+        .eq("name", body.key_name)
+        .eq("is_active", True)
+        .execute()
+    )
+    if existing_keys.data:
+        old_key_id = existing_keys.data[0]["id"]
+        sb.table("api_keys").update({"is_active": False}).eq("id", old_key_id).execute()
+
     key_data = create_api_key(user_id=internal_user_id, name=body.key_name)
     api_key = key_data["key"]
 
@@ -113,8 +131,21 @@ async def setup_installer(body: InstallerRequest):
         "models": model_ids,
     }
 
+    # Build dashboard URL with session tokens in hash so Supabase JS auto-authenticates
+    # the WKWebView without requiring the user to log in again.
+    dashboard_url = "https://vuzo-api-1.onrender.com"
+    if supabase_session:
+        dashboard_url = (
+            f"https://vuzo-api-1.onrender.com"
+            f"#access_token={supabase_session.access_token}"
+            f"&refresh_token={supabase_session.refresh_token}"
+            f"&token_type=bearer"
+            f"&type=signup"
+        )
+
     return {
         "api_key": api_key,
         "models": model_ids,
         "openclaw_config": openclaw_config,
+        "dashboard_url": dashboard_url,
     }

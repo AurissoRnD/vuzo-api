@@ -2,7 +2,7 @@
 
 Unified LLM API proxy. One key for OpenAI, xAI (Grok), Google (Gemini), and Anthropic (Claude).
 
-**Live:** [vuzo-api.onrender.com](https://vuzo-api.onrender.com) · **Dashboard:** [vuzo-dashboard.onrender.com](https://vuzo-dashboard.onrender.com)
+**Live:** [vuzo-api.onrender.com](https://vuzo-api.onrender.com) · **Dashboard:** [vuzo-api-1.onrender.com](https://vuzo-api-1.onrender.com)
 
 ## Quick Start (local)
 
