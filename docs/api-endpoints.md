@@ -1,344 +1,534 @@
 # Vuzo API — Endpoint Reference
 
-Base URL: `https://vuzo-api-1.onrender.com`
+**API Base URL:** `https://vuzo-api.onrender.com`
+**Dashboard:** `https://vuzo-api-1.onrender.com`
 
 ---
 
-## Auth Headers
+## Auth
 
-| Header | Format | Used for |
-|--------|--------|---------|
-| `Authorization` | `Bearer <supabase_jwt>` | After login/register |
-| `Authorization` | `Bearer vz-<key>` | Vuzo API key |
+| Header | Format | When to use |
+|--------|--------|-------------|
+| `Authorization` | `Bearer <supabase_jwt>` | After login/register via web |
+| `Authorization` | `Bearer vz-sk_<key>` | Vuzo API key (installer + OpenClaw) |
+
+Endpoints marked **JWT or API Key** accept either. Endpoints marked **API Key only** require a `vz-sk_` key.
 
 ---
 
-## 1. Registration & Login
+## Summary
 
-### Register
-`POST /v1/auth/register`
+| # | Method | Path | Auth | Purpose |
+|---|--------|------|------|---------|
+| 1 | POST | /v1/auth/register | None | Register new user |
+| 2 | POST | /v1/auth/login | None | Login |
+| 3 | POST | /v1/auth/refresh | None | Refresh JWT |
+| 4 | POST | /v1/api-keys | JWT or API Key | Create API key |
+| 5 | GET | /v1/api-keys | JWT or API Key | List API keys |
+| 6 | DELETE | /v1/api-keys/{key_id} | JWT or API Key | Revoke API key |
+| 7 | GET | /v1/billing/balance | JWT or API Key | Check credit balance |
+| 8 | POST | /v1/billing/topup | JWT or API Key | Add credits (dev only) |
+| 9 | GET | /v1/billing/transactions | JWT or API Key | List transactions |
+| 10 | POST | /v1/billing/checkout | JWT or API Key | Create Polar checkout |
+| 11 | POST | /v1/webhooks/polar | Signature only | Polar webhook receiver |
+| 12 | GET | /v1/models | None | List all models + pricing |
+| 13 | GET | /v1/models/{model_name} | None | Single model pricing |
+| 14 | POST | /v1/chat/completions | API Key only | LLM proxy |
+| 15 | GET | /v1/usage | JWT or API Key | Usage logs |
+| 16 | GET | /v1/usage/summary | JWT or API Key | Aggregated usage stats |
+| 17 | GET | /v1/usage/daily | JWT or API Key | Daily usage breakdown |
+| 18 | POST | /v1/setup/installer | None | Installer login/register |
+| 19 | GET | /health | None | Health check |
 
-Creates an account + auto-generates a `vz-*` API key + grants **200K token starter credit ($0.40)**.
-**The API key is returned once only — store it immediately.**
+---
 
+## 1. `POST /v1/auth/register`
+
+**Auth:** None
+
+**Request body:**
 ```json
-// Request
 {
   "email": "user@example.com",
   "password": "yourpassword"
 }
+```
 
-// Response
+**Response:**
+```json
 {
   "message": "Registration successful",
-  "user_id": "<supabase_uid>",
+  "user_id": "<supabase_uuid>",
   "session": {
     "access_token": "<jwt>",
     "refresh_token": "<token>",
     "expires_in": 3600
   },
-  "api_key": "vz-abc123_xxxxxxxxxxxxxxxx",
-  "starter_credits": {
-    "usd": 0.40,
-    "tokens": 200000
-  }
+  "api_key": "vz-sk_xxxxxxxxxxxxxxxx"
 }
 ```
 
+**Notes:**
+- Creates Supabase auth account + Vuzo user record
+- Auto-creates a `Default` API key — returned once only, store immediately
+- Sets credit balance to $0 — **free credits only granted via installer**
+
 ---
 
-### Login
-`POST /v1/auth/login`
+## 2. `POST /v1/auth/login`
 
+**Auth:** None
+
+**Request body:**
 ```json
-// Request
 {
   "email": "user@example.com",
   "password": "yourpassword"
 }
+```
 
-// Response
+**Response:**
+```json
 {
   "access_token": "<jwt>",
   "refresh_token": "<token>",
   "expires_in": 3600,
   "user": {
-    "id": "<supabase_uid>",
+    "id": "<supabase_uuid>",
     "email": "user@example.com"
   }
 }
 ```
 
+**Errors:** `401` if credentials invalid.
+
 ---
 
-### Refresh Token
-`POST /v1/auth/refresh`
+## 3. `POST /v1/auth/refresh`
 
+**Auth:** None
+
+**Request body:**
 ```json
-// Request
-{ "refresh_token": "<token>" }
-
-// Response
 {
-  "access_token": "<new_jwt>",
-  "refresh_token": "<new_token>",
+  "refresh_token": "<token>"
+}
+```
+
+**Response:**
+```json
+{
+  "access_token": "<jwt>",
+  "refresh_token": "<token>",
   "expires_in": 3600
 }
 ```
 
+**Errors:** `401` if refresh token invalid or expired.
+
 ---
 
-## 2. API Key Management
+## 4. `POST /v1/api-keys`
 
-All endpoints require `Authorization: Bearer <jwt_or_vz_key>`.
+**Auth:** JWT or API Key
 
-### Create API Key
-`POST /v1/api-keys`
-
-Generates an additional `vz-*` key. **Full key returned only once.**
-
+**Request body:**
 ```json
-// Request
-{ "name": "My Key" }
-
-// Response
 {
-  "id": "key_id",
-  "name": "My Key",
-  "key": "vz-abc123_xxxxxxxxxxxxxxxx",
-  "key_prefix": "vz-abc123",
-  "created_at": "2026-04-10T00:00:00Z"
+  "name": "My Key"
 }
 ```
 
+**Response:**
+```json
+{
+  "id": "<uuid>",
+  "name": "My Key",
+  "key": "vz-sk_xxxxxxxxxxxxxxxx",
+  "key_prefix": "vz-sk_xx",
+  "created_at": "2026-04-16T00:00:00Z"
+}
+```
+
+**Notes:** Full key returned once only — store immediately.
+
 ---
 
-### List API Keys
-`GET /v1/api-keys`
+## 5. `GET /v1/api-keys`
 
+**Auth:** JWT or API Key
+
+**Response:**
 ```json
-// Response
 [
   {
-    "id": "key_id",
-    "name": "My Key",
-    "key_prefix": "vz-abc123",
+    "id": "<uuid>",
+    "name": "OpenClaw",
+    "key_prefix": "vz-sk_xx",
     "is_active": true,
     "rate_limit_rpm": 60,
-    "created_at": "2026-04-10T00:00:00Z",
-    "last_used_at": "2026-04-10T12:00:00Z"
+    "created_at": "2026-04-16T00:00:00Z",
+    "last_used_at": "2026-04-16T10:00:00Z"
   }
 ]
 ```
 
 ---
 
-### Revoke API Key
-`DELETE /v1/api-keys/{key_id}`
+## 6. `DELETE /v1/api-keys/{key_id}`
 
-Returns `204 No Content` on success.
+**Auth:** JWT or API Key
 
----
+**Path param:** `key_id` — UUID of the key to revoke
 
-## 3. Dashboard — Credits & Billing
-
-All endpoints require `Authorization: Bearer <jwt_or_vz_key>`.
-
-### Credit Balance
-`GET /v1/billing/balance`
-
+**Response:**
 ```json
-// Response
 {
-  "balance_usd": 0.38,
-  "balance_credits": 380000
+  "message": "API key revoked",
+  "key_id": "<uuid>"
 }
 ```
 
+**Errors:** `404` if key not found or doesn't belong to user.
+
 ---
 
-### Transaction History
-`GET /v1/billing/transactions`
+## 7. `GET /v1/billing/balance`
 
-Query params: `limit` (1–200, default 50), `offset` (default 0)
+**Auth:** JWT or API Key
 
+**Response:**
 ```json
-// Response
+{
+  "user_id": "<uuid>",
+  "balance": 1.00
+}
+```
+
+Balance is in USD. $1.00 ≈ 500,000 tokens on mid-range models.
+
+---
+
+## 8. `POST /v1/billing/topup` ⚠️ Dev only
+
+**Auth:** JWT or API Key
+
+**Request body:**
+```json
+{
+  "amount": 5.00
+}
+```
+
+**Response:**
+```json
+{
+  "user_id": "<uuid>",
+  "amount": 5.00,
+  "new_balance": 6.00,
+  "transaction_id": "<uuid>"
+}
+```
+
+**Notes:** Disabled in production — returns `403`. Use `/v1/billing/checkout` in production.
+
+---
+
+## 9. `GET /v1/billing/transactions`
+
+**Auth:** JWT or API Key
+
+**Query params:**
+- `limit` (integer, default: 50, max: 200)
+- `offset` (integer, default: 0)
+
+**Response:**
+```json
 [
   {
-    "id": "txn_id",
+    "id": "<uuid>",
+    "amount": 1.00,
     "type": "topup",
-    "amount": 0.40,
-    "description": "Starter allowance — 200,000 tokens",
-    "created_at": "2026-04-10T00:00:00Z"
-  },
-  {
-    "id": "txn_id",
-    "type": "usage",
-    "amount": -0.0012,
-    "description": "gpt-4o usage",
-    "created_at": "2026-04-10T12:00:00Z"
+    "description": "Free starter allowance — 500,000 tokens",
+    "created_at": "2026-04-16T00:00:00Z"
   }
 ]
 ```
 
+`type` is one of: `topup`, `usage`, `refund`
+
 ---
 
-### Top-up — Create Checkout Session
-`POST /v1/billing/checkout`
+## 10. `POST /v1/billing/checkout`
 
+**Auth:** JWT or API Key
+
+**Request body** — provide `tier` OR `amount`, not both:
 ```json
-// Request (preset tier)
-{ "tier": "30" }
-
-// Request (custom amount, min $10)
+{ "tier": "10" }
+```
+```json
 { "amount": 25.00 }
-
-// Response
-{ "checkout_url": "https://polar.sh/checkout/..." }
 ```
 
-Tiers: `"10"`, `"30"`, `"50"` (USD).
+Valid tiers: `"10"`, `"30"`, `"50"` (USD).
+Custom amount minimum: $10.
+
+**Response:**
+```json
+{
+  "checkout_url": "https://buy.polar.sh/..."
+}
+```
+
+**Errors:** `400` if both/neither provided, invalid tier, or amount < $10. `503` if Polar not configured.
 
 ---
 
-## 4. Dashboard — Usage Stats
+## 11. `POST /v1/webhooks/polar`
 
-All endpoints require `Authorization: Bearer <jwt_or_vz_key>`.  
-Date format: ISO 8601 — e.g. `2026-04-01T00:00:00Z`
+**Auth:** Webhook signature (`webhook-signature` header, HMAC-SHA256)
 
-### Usage Logs (paginated)
-`GET /v1/usage`
+**Notes:**
+- Processes `order.created` events only
+- On valid Vuzo product order: credits the user's balance
+- Returns `400` if signature invalid
+- Returns `{"received": true}` for all other events (non-Vuzo products silently ignored)
 
-Query params: `model`, `provider`, `start_date`, `end_date`, `limit` (1–200, default 50), `offset`
+---
 
+## 12. `GET /v1/models`
+
+**Auth:** None (public)
+
+**Response:**
 ```json
-// Response
 [
   {
-    "id": "log_id",
-    "model": "gpt-4o",
     "provider": "openai",
-    "input_tokens": 512,
-    "output_tokens": 128,
-    "cost_usd": 0.0012,
-    "created_at": "2026-04-10T12:00:00Z"
+    "model_name": "gpt-4o",
+    "input_price_per_million": 2.50,
+    "output_price_per_million": 10.00,
+    "vuzo_input_price_per_million": 2.75,
+    "vuzo_output_price_per_million": 11.00,
+    "vuzo_markup_percent": 10.0
   }
 ]
 ```
 
 ---
 
-### Usage Summary (totals)
-`GET /v1/usage/summary`
+## 13. `GET /v1/models/{model_name}`
 
-Query params: `start_date`, `end_date`
+**Auth:** None (public)
 
+**Path param:** `model_name` — e.g. `gpt-4o`, `claude-sonnet-4-5`
+
+**Response:** Single object (same shape as above)
+
+**Errors:** `404` if model not found.
+
+---
+
+## 14. `POST /v1/chat/completions`
+
+**Auth:** API Key only (`vz-sk_`)
+
+**Request body** (OpenAI-compatible):
 ```json
-// Response
 {
-  "total_requests": 142,
-  "total_input_tokens": 84000,
-  "total_output_tokens": 21000,
-  "total_cost_usd": 1.24
+  "model": "gpt-4o",
+  "messages": [
+    { "role": "user", "content": "Hello" }
+  ],
+  "temperature": 0.7,
+  "max_tokens": 1000,
+  "stream": false
+}
+```
+
+| Field | Type | Required |
+|-------|------|----------|
+| `model` | string | Yes |
+| `messages` | array | Yes |
+| `temperature` | float | No |
+| `top_p` | float | No |
+| `max_tokens` | integer | No |
+| `stream` | boolean | No (default: false) |
+| `stop` | string or array | No |
+| `frequency_penalty` | float | No |
+| `presence_penalty` | float | No |
+
+**Response (non-streaming):**
+```json
+{
+  "id": "chatcmpl-xxx",
+  "object": "chat.completion",
+  "created": 1744800000,
+  "model": "gpt-4o",
+  "choices": [
+    {
+      "index": 0,
+      "message": { "role": "assistant", "content": "Hello!" },
+      "finish_reason": "stop"
+    }
+  ],
+  "usage": {
+    "prompt_tokens": 10,
+    "completion_tokens": 5,
+    "total_tokens": 15
+  }
+}
+```
+
+**Response (streaming):** `text/event-stream` SSE, same OpenAI delta format.
+
+**Errors:**
+- `400` — model not found
+- `402` — insufficient balance (top up at `/v1/billing/checkout`)
+- `401` — invalid API key
+- `429` — rate limit exceeded
+
+**Notes:** Routes to OpenAI, Anthropic, Google, or xAI based on model. Deducts credits on completion. Logs all usage.
+
+---
+
+## 15. `GET /v1/usage`
+
+**Auth:** JWT or API Key
+
+**Query params:**
+- `model` (string, optional)
+- `provider` (string, optional) — `openai`, `anthropic`, `google`, `xai`
+- `start_date` (ISO datetime, optional)
+- `end_date` (ISO datetime, optional)
+- `limit` (integer, default: 50, max: 200)
+- `offset` (integer, default: 0)
+
+**Response:**
+```json
+[
+  {
+    "id": "<uuid>",
+    "provider": "openai",
+    "model": "gpt-4o",
+    "input_tokens": 100,
+    "output_tokens": 50,
+    "total_tokens": 150,
+    "provider_cost": 0.000625,
+    "vuzo_cost": 0.0006875,
+    "response_time_ms": 1200,
+    "created_at": "2026-04-16T10:00:00Z"
+  }
+]
+```
+
+---
+
+## 16. `GET /v1/usage/summary`
+
+**Auth:** JWT or API Key
+
+**Query params:**
+- `start_date` (ISO datetime, optional)
+- `end_date` (ISO datetime, optional)
+
+**Response:**
+```json
+{
+  "total_requests": 42,
+  "total_input_tokens": 10000,
+  "total_output_tokens": 5000,
+  "total_tokens": 15000,
+  "total_provider_cost": 0.05,
+  "total_vuzo_cost": 0.055
 }
 ```
 
 ---
 
-### Usage by Day
-`GET /v1/usage/daily`
+## 17. `GET /v1/usage/daily`
 
-Query params: `model`, `provider`, `start_date`, `end_date`
+**Auth:** JWT or API Key
 
+**Query params:**
+- `model` (string, optional)
+- `provider` (string, optional)
+- `start_date` (ISO datetime, optional)
+- `end_date` (ISO datetime, optional)
+
+**Response:**
 ```json
-// Response
 [
   {
-    "date": "2026-04-10",
+    "date": "2026-04-16",
     "model": "gpt-4o",
     "provider": "openai",
-    "requests": 18,
-    "input_tokens": 9200,
-    "output_tokens": 2400,
-    "cost_usd": 0.18
+    "total_requests": 10,
+    "input_tokens": 2000,
+    "output_tokens": 1000,
+    "total_cost": 0.015
   }
 ]
 ```
 
 ---
 
-## 5. Available Models
+## 18. `POST /v1/setup/installer`
 
-Public — no auth required.
+**Auth:** None
 
-### List All Models
-`GET /v1/models`
-
+**Request body:**
 ```json
-// Response
-[
-  {
-    "model_name": "gpt-4o",
-    "provider": "openai",
-    "vuzo_input_price_per_million": 6.00,
-    "vuzo_output_price_per_million": 18.00,
-    "vuzo_markup_percent": 20
-  }
-]
+{
+  "email": "user@example.com",
+  "password": "yourpassword",
+  "key_name": "OpenClaw"
+}
 ```
 
-### Single Model Pricing
-`GET /v1/models/{model_name}`
+`key_name` is optional, defaults to `"OpenClaw"`.
+
+**Response:**
+```json
+{
+  "api_key": "vz-sk_xxxxxxxxxxxxxxxx",
+  "models": ["gpt-4o", "gpt-4o-mini", "claude-sonnet-4-5", "grok-3"],
+  "openclaw_config": {
+    "base_url": "https://vuzo-api.onrender.com/v1",
+    "provider_name": "vuzo",
+    "models": ["gpt-4o", "gpt-4o-mini", "claude-sonnet-4-5", "grok-3"]
+  },
+  "dashboard_url": "https://vuzo-api-1.onrender.com#access_token=<jwt>&refresh_token=<token>&token_type=bearer&type=signup"
+}
+```
+
+**Notes:**
+- Tries login first — auto-registers if account doesn't exist
+- New accounts receive **$1.00 free credit (~500,000 tokens)**
+- Revokes any existing active key with the same `key_name` before creating a new one (prevents accumulation on re-install)
+- `dashboard_url` includes session tokens in the URL hash — load directly in WKWebView for auto-login
+- API key returned once only — store in Keychain immediately
 
 ---
 
-## 6. Health
+## 19. `GET /health`
 
-`GET /health` — Public, no auth.
+**Auth:** None
 
----
-
-## Quick Reference
-
-| Flow | Endpoint | Auth |
-|------|----------|------|
-| Register (+ auto key + 200K tokens) | `POST /v1/auth/register` | None |
-| Login | `POST /v1/auth/login` | None |
-| Refresh session | `POST /v1/auth/refresh` | None |
-| Create additional API key | `POST /v1/api-keys` | JWT or API Key |
-| List API keys | `GET /v1/api-keys` | JWT or API Key |
-| Revoke API key | `DELETE /v1/api-keys/{key_id}` | JWT or API Key |
-| Credit balance | `GET /v1/billing/balance` | JWT or API Key |
-| Transaction history | `GET /v1/billing/transactions` | JWT or API Key |
-| Top-up checkout | `POST /v1/billing/checkout` | JWT or API Key |
-| Usage logs | `GET /v1/usage` | JWT or API Key |
-| Usage summary | `GET /v1/usage/summary` | JWT or API Key |
-| Usage by day | `GET /v1/usage/daily` | JWT or API Key |
-| List models | `GET /v1/models` | None |
-| Health check | `GET /health` | None |
+**Response:**
+```json
+{
+  "status": "ok",
+  "service": "vuzo-api"
+}
+```
 
 ---
 
-## Token → Credit Conversion
+## OpenClaw Config Reference
 
-Credits are stored as USD. Conversion reference (Vuzo blended pricing):
-
-| Amount | Approximate tokens |
-|--------|--------------------|
-| $0.40 | ~200,000 (starter) |
-| $1.00 | ~500,000 |
-| $10.00 | ~5,000,000 |
-
----
-
-## OpenClaw Integration
-
-After registering, the `api_key` in the response (`vz-*`) is used to connect OpenClaw to Vuzo.
-
-### How OpenClaw uses the key
-
-OpenClaw reads its config from `settings.json`. Add the `vuzo` provider block and set your default model:
+After calling `/v1/setup/installer`, write this to `~/.openclaw/settings.json`:
 
 ```json
 {
@@ -347,7 +537,7 @@ OpenClaw reads its config from `settings.json`. Add the `vuzo` provider block an
     "providers": {
       "vuzo": {
         "api": "openai-completions",
-        "api-key": "vz-YOUR_KEY_HERE",
+        "api-key": "<api_key from response>",
         "base-url": "https://vuzo-api.onrender.com/v1"
       }
     }
@@ -364,50 +554,4 @@ OpenClaw reads its config from `settings.json`. Add the `vuzo` provider block an
 }
 ```
 
-### Config file location
-
-Find yours by running:
-
-```bash
-openclaw config path
-```
-
-If that command doesn't exist, the file is in one of these locations depending on your OS:
-
-| OS | Path |
-|----|------|
-| macOS | `~/Library/Application Support/openclaw/settings.json` |
-| Linux (XDG) | `~/.config/openclaw/settings.json` |
-| Linux (default) | `~/.openclaw/settings.json` |
-| Windows | `%APPDATA%\openclaw\settings.json` |
-
-Create the file and parent directory if they don't exist.
-
-### Model reference format
-
-All models are prefixed with `vuzo/` in OpenClaw:
-
-```
-vuzo/gpt-4o
-vuzo/claude-sonnet-4-5
-vuzo/gemini-pro
-vuzo/grok-2
-```
-
-Use `GET /v1/models` to get the full list of available model names, then prefix each with `vuzo/`.
-
-### Verification
-
-Once configured, test the connection from within OpenClaw or run:
-
-```bash
-curl https://vuzo-api.onrender.com/v1/chat/completions \
-  -H "Authorization: Bearer vz-YOUR_KEY_HERE" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "gpt-4o",
-    "messages": [{ "role": "user", "content": "ping" }]
-  }'
-```
-
-A valid response means the key is active and OpenClaw will route through Vuzo correctly.
+All model names must be prefixed with `vuzo/` — e.g. `gpt-4o` → `vuzo/gpt-4o`.
