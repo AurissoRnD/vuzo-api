@@ -101,6 +101,30 @@ async def setup_installer(body: InstallerRequest):
 
     internal_user_id = user_row.data[0]["id"]
 
+    # --- Step 2b: Grant starter credits if balance is still $0 ---
+    # Covers the case where a user registered via /auth/register (which gives $0)
+    # and then comes through the installer. Only grant once.
+    credits_row = (
+        sb.table("credits")
+        .select("balance")
+        .eq("user_id", internal_user_id)
+        .execute()
+    )
+    current_balance = credits_row.data[0]["balance"] if credits_row.data else 0
+
+    if current_balance == 0:
+        if credits_row.data:
+            sb.table("credits").update({"balance": 1.00}).eq("user_id", internal_user_id).execute()
+        else:
+            sb.table("credits").insert({"user_id": internal_user_id, "balance": 1.00}).execute()
+
+        sb.table("credit_transactions").insert({
+            "user_id": internal_user_id,
+            "amount": 1.00,
+            "type": "topup",
+            "description": "Free starter allowance — SimplerClaw installer",
+        }).execute()
+
     # --- Step 3: Reuse existing OpenClaw key if present, otherwise create one ---
     # Keys are hashed and cannot be retrieved after creation, so if one already
     # exists we revoke it and issue a fresh one. This prevents key accumulation
