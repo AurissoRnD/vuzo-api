@@ -38,7 +38,7 @@ export default function Register() {
     <div className="min-h-screen flex items-center justify-center bg-zinc-950 px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-white">Vuzo</h1>
+          <h1 className="text-3xl font-bold text-white">SimplerClaw</h1>
           <p className="text-zinc-400 mt-2">Create your account</p>
         </div>
 

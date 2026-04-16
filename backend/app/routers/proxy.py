@@ -8,19 +8,13 @@ from app.middleware.auth import validate_api_key
 from app.services.pricing_service import get_model_pricing, get_provider_api_key
 from app.services.billing_service import check_sufficient_balance, deduct_credits
 from app.services.usage_service import log_usage
-from app.services.providers.openai import OpenAIProvider
-from app.services.providers.xai import XAIProvider
-from app.services.providers.google import GoogleProvider
-from app.services.providers.anthropic import AnthropicProvider
+from app.services.providers.moonshot import MoonshotProvider
 from app.utils.pricing import calculate_cost
 
 router = APIRouter()
 
-_openai = OpenAIProvider()
-_xai = XAIProvider()
-_google = GoogleProvider()
-_anthropic = AnthropicProvider()
-_providers = [_openai, _xai, _google, _anthropic]
+_moonshot = MoonshotProvider()
+_providers = [_moonshot]
 
 
 def _get_provider(model: str):
