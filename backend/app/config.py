@@ -7,7 +7,10 @@ class Settings(BaseSettings):
     supabase_key: str
     supabase_service_role_key: str
     supabase_jwt_secret: str = ""
-    provider_encryption_key: str
+    provider_encryption_key: str = ""
+
+    # Provider API keys
+    moonshot_api_key: str = ""
 
     # Polar payment integration
     polar_access_token: str = ""

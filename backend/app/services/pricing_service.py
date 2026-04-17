@@ -1,7 +1,12 @@
 from fastapi import HTTPException
 from app.models.database import get_supabase
 from app.utils.crypto import decrypt_provider_key
+from app.config import get_settings
 from cryptography.fernet import InvalidToken
+
+_PROVIDER_ENV_KEYS = {
+    "moonshot": lambda s: s.moonshot_api_key,
+}
 
 
 def get_model_pricing(model_name: str) -> dict:
@@ -41,9 +46,18 @@ def get_all_models() -> list[dict]:
 
 def get_provider_api_key(provider: str) -> str:
     """
-    Retrieve and decrypt the master API key for a provider.
-    Raises 503 if provider key is not configured.
+    Retrieve the master API key for a provider.
+    Checks env var first, falls back to encrypted DB entry.
+    Raises 503 if neither is configured.
     """
+    # Env var takes priority
+    env_getter = _PROVIDER_ENV_KEYS.get(provider)
+    if env_getter:
+        key = env_getter(get_settings())
+        if key:
+            return key
+
+    # Fall back to encrypted DB entry
     sb = get_supabase()
     result = (
         sb.table("provider_keys")
