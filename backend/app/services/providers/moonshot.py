@@ -9,7 +9,7 @@ from app.models.database import get_http_client
 from app.models.schemas import ChatCompletionRequest, ProviderUsageResult
 from app.services.providers.base import BaseProvider
 
-MOONSHOT_BASE_URL = "https://api.moonshot.cn/v1"
+MOONSHOT_BASE_URL = "https://api.moonshot.ai/v1"
 
 MOONSHOT_MODELS = {
     "kimi-k2.5",
