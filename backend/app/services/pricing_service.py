@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 from app.models.database import get_supabase
 from app.utils.crypto import decrypt_provider_key
+from cryptography.fernet import InvalidToken
 
 
 def get_model_pricing(model_name: str) -> dict:
@@ -56,4 +57,10 @@ def get_provider_api_key(provider: str) -> str:
             status_code=503,
             detail=f"Provider '{provider}' is not configured. Contact Vuzo support.",
         )
-    return decrypt_provider_key(result.data[0]["api_key_encrypted"])
+    try:
+        return decrypt_provider_key(result.data[0]["api_key_encrypted"])
+    except InvalidToken:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Provider '{provider}' key is corrupted or encryption key mismatch. Contact Vuzo support.",
+        )

@@ -2,6 +2,9 @@ import json
 import time
 from typing import AsyncIterator
 
+import httpx
+from fastapi import HTTPException
+
 from app.models.database import get_http_client
 from app.models.schemas import ChatCompletionRequest, ProviderUsageResult
 from app.services.providers.base import BaseProvider
@@ -27,15 +30,26 @@ class MoonshotProvider(BaseProvider):
 
         payload = self._build_payload(request, stream=False)
 
-        resp = await client.post(
-            f"{MOONSHOT_BASE_URL}/chat/completions",
-            json=payload,
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
-        )
-        resp.raise_for_status()
+        try:
+            resp = await client.post(
+                f"{MOONSHOT_BASE_URL}/chat/completions",
+                json=payload,
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+            )
+            resp.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            status = exc.response.status_code
+            try:
+                detail = exc.response.json()
+            except Exception:
+                detail = exc.response.text or "Moonshot upstream error"
+            raise HTTPException(status_code=502, detail={"upstream_status": status, "upstream_error": detail})
+        except httpx.RequestError as exc:
+            raise HTTPException(status_code=503, detail=f"Could not reach Moonshot: {exc}")
+
         data = resp.json()
 
         usage = data.get("usage", {})
@@ -56,16 +70,32 @@ class MoonshotProvider(BaseProvider):
 
         usage_result: ProviderUsageResult | None = None
 
-        async with client.stream(
-            "POST",
-            f"{MOONSHOT_BASE_URL}/chat/completions",
-            json=payload,
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
-        ) as resp:
-            resp.raise_for_status()
+        try:
+            stream_ctx = client.stream(
+                "POST",
+                f"{MOONSHOT_BASE_URL}/chat/completions",
+                json=payload,
+                headers={
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                },
+            )
+        except httpx.RequestError as exc:
+            yield f"data: {json.dumps({'error': str(exc)})}\n\ndata: [DONE]\n\n", None
+            return
+
+        async with stream_ctx as resp:
+            try:
+                resp.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                status = exc.response.status_code
+                try:
+                    detail = exc.response.json()
+                except Exception:
+                    detail = exc.response.text or "Moonshot upstream error"
+                yield f"data: {json.dumps({'error': {'upstream_status': status, 'upstream_error': detail}})}\n\ndata: [DONE]\n\n", None
+                return
+
             async for line in resp.aiter_lines():
                 if not line.startswith("data: "):
                     continue
