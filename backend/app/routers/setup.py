@@ -199,6 +199,11 @@ async def setup_installer(body: InstallerRequest):
         "models": model_ids,
         "openclaw_config": openclaw_config,
         "dashboard_url": dashboard_url,
+        "session": {
+            "access_token": supabase_session.access_token,
+            "refresh_token": supabase_session.refresh_token,
+            "expires_in": supabase_session.expires_in,
+        } if supabase_session else None,
     }
 
 
