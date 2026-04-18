@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from app.models.database import get_supabase
 from app.config import get_settings
+from app.dependencies import get_current_user_id
 from app.services.key_service import create_api_key
 from app.services.pricing_service import get_all_models
 
@@ -15,6 +16,36 @@ class InstallerRequest(BaseModel):
     email: str
     password: str
     key_name: str = "OpenClaw"
+
+
+def _starter_grant_already_given(sb, user_id: str) -> bool:
+    """Return True if this user has already received the free starter allowance."""
+    result = (
+        sb.table("credit_transactions")
+        .select("id")
+        .eq("user_id", user_id)
+        .eq("type", "topup")
+        .ilike("description", "%starter allowance%")
+        .limit(1)
+        .execute()
+    )
+    return bool(result.data)
+
+
+def _rotate_openclaw_key(sb, user_id: str, key_name: str) -> str:
+    """Revoke the existing named key (if any) and issue a fresh one. Returns the new plaintext key."""
+    existing = (
+        sb.table("api_keys")
+        .select("id")
+        .eq("user_id", user_id)
+        .eq("name", key_name)
+        .eq("is_active", True)
+        .execute()
+    )
+    if existing.data:
+        sb.table("api_keys").update({"is_active": False}).eq("id", existing.data[0]["id"]).execute()
+
+    return create_api_key(user_id=user_id, name=key_name)["key"]
 
 
 @router.post("/setup/installer")
@@ -80,7 +111,7 @@ async def setup_installer(body: InstallerRequest):
                 uid = new_user.data[0]["id"]
                 sb.table("credits").insert({
                     "user_id": uid,
-                    "balance": 1.00,  # ~500k tokens on mid-range models (free starter allowance)
+                    "balance": 1.00,
                 }).execute()
                 sb.table("credit_transactions").insert({
                     "user_id": uid,
@@ -101,18 +132,16 @@ async def setup_installer(body: InstallerRequest):
 
     internal_user_id = user_row.data[0]["id"]
 
-    # --- Step 2b: Grant starter credits if balance is still $0 ---
-    # Covers the case where a user registered via /auth/register (which gives $0)
-    # and then comes through the installer. Only grant once.
-    credits_row = (
-        sb.table("credits")
-        .select("balance")
-        .eq("user_id", internal_user_id)
-        .execute()
-    )
-    current_balance = credits_row.data[0]["balance"] if credits_row.data else 0
-
-    if current_balance == 0:
+    # --- Step 2b: Grant starter credits exactly once ---
+    # Check transaction history — not current balance — so draining to $0 and
+    # re-running the installer cannot farm the grant a second time.
+    if not _starter_grant_already_given(sb, internal_user_id):
+        credits_row = (
+            sb.table("credits")
+            .select("balance")
+            .eq("user_id", internal_user_id)
+            .execute()
+        )
         if credits_row.data:
             sb.table("credits").update({"balance": 1.00}).eq("user_id", internal_user_id).execute()
         else:
@@ -125,24 +154,8 @@ async def setup_installer(body: InstallerRequest):
             "description": "Free starter allowance — SimplerClaw installer",
         }).execute()
 
-    # --- Step 3: Reuse existing OpenClaw key if present, otherwise create one ---
-    # Keys are hashed and cannot be retrieved after creation, so if one already
-    # exists we revoke it and issue a fresh one. This prevents key accumulation
-    # when a user re-runs the installer.
-    existing_keys = (
-        sb.table("api_keys")
-        .select("id")
-        .eq("user_id", internal_user_id)
-        .eq("name", body.key_name)
-        .eq("is_active", True)
-        .execute()
-    )
-    if existing_keys.data:
-        old_key_id = existing_keys.data[0]["id"]
-        sb.table("api_keys").update({"is_active": False}).eq("id", old_key_id).execute()
-
-    key_data = create_api_key(user_id=internal_user_id, name=body.key_name)
-    api_key = key_data["key"]
+    # --- Step 3: Rotate the OpenClaw key ---
+    api_key = _rotate_openclaw_key(sb, internal_user_id, body.key_name)
 
     # --- Step 4: Fetch available model ids ---
     model_rows = get_all_models()
@@ -172,4 +185,32 @@ async def setup_installer(body: InstallerRequest):
         "models": model_ids,
         "openclaw_config": openclaw_config,
         "dashboard_url": dashboard_url,
+    }
+
+
+@router.post("/setup/rotate-key")
+async def rotate_key(
+    key_name: str = "OpenClaw",
+    user_id: str = Depends(get_current_user_id),
+):
+    """
+    Revoke the user's current named API key and issue a fresh one.
+    Authenticate with a Supabase JWT (from /v1/auth/login) — not the vz-sk key
+    being rotated, since that may be compromised.
+    Returns the new key and a ready-to-paste OpenClaw config snippet.
+    """
+    sb = get_supabase()
+    api_key = _rotate_openclaw_key(sb, user_id, key_name)
+
+    model_rows = get_all_models()
+    model_ids = [r["model_name"] for r in model_rows]
+
+    return {
+        "api_key": api_key,
+        "models": model_ids,
+        "openclaw_config": {
+            "base_url": VUZO_API_BASE_URL,
+            "provider_name": "vuzo",
+            "models": model_ids,
+        },
     }
