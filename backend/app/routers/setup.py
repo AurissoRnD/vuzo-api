@@ -154,8 +154,22 @@ async def setup_installer(body: InstallerRequest):
             "description": "Free starter allowance — SimplerClaw installer",
         }).execute()
 
-    # --- Step 3: Rotate the OpenClaw key ---
-    api_key = _rotate_openclaw_key(sb, internal_user_id, body.key_name)
+    # --- Step 3: Return existing key if present, otherwise create one ---
+    # Keys are hashed and cannot be retrieved after creation, so if an active
+    # key already exists we leave it untouched and signal the installer to keep
+    # its current config. Explicit rotation is handled by POST /setup/rotate-key.
+    existing_key = (
+        sb.table("api_keys")
+        .select("id")
+        .eq("user_id", internal_user_id)
+        .eq("name", body.key_name)
+        .eq("is_active", True)
+        .execute()
+    )
+    if existing_key.data:
+        api_key = None  # already configured — installer should not overwrite config
+    else:
+        api_key = create_api_key(user_id=internal_user_id, name=body.key_name)["key"]
 
     # --- Step 4: Fetch available model ids ---
     model_rows = get_all_models()
