@@ -45,7 +45,7 @@ services:
     name: vuzo-dashboard
     runtime: static
     rootDir: frontend
-    buildCommand: npm install && npm run build
+    buildCommand: npm install && npm run test && npm run build
     staticPublishPath: dist
     routes:
       - type: rewrite

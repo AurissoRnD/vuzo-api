@@ -9,7 +9,7 @@ interface AuthState {
   signOut: () => Promise<void>
 }
 
-const AuthContext = createContext<AuthState>({
+export const AuthContext = createContext<AuthState>({
   session: null,
   user: null,
   loading: true,
