@@ -26,7 +26,7 @@ async def validate_api_key(
     sb = get_supabase()
     result = (
         sb.table("api_keys")
-        .select("id, user_id, key_hash, is_active, rate_limit_rpm")
+        .select("id, user_id, key_hash, is_active, rate_limit_rpm, token_limit")
         .eq("key_prefix", prefix)
         .execute()
     )
@@ -60,8 +60,24 @@ async def validate_api_key(
         "id", matched_key["id"]
     ).execute()
 
+    token_limit = matched_key.get("token_limit")
+    if token_limit is not None:
+        usage = (
+            sb.table("usage_logs")
+            .select("total_tokens")
+            .eq("api_key_id", matched_key["id"])
+            .execute()
+        )
+        tokens_used = sum(row["total_tokens"] for row in (usage.data or []))
+        if tokens_used >= token_limit:
+            raise HTTPException(
+                status_code=429,
+                detail=f"Token limit of {token_limit:,} reached. Top up your account to continue."
+            )
+
     return AuthContext(
         user_id=matched_key["user_id"],
         api_key_id=matched_key["id"],
         rate_limit_rpm=matched_key["rate_limit_rpm"],
+        token_limit=token_limit,
     )

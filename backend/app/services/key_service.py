@@ -2,7 +2,7 @@ from app.models.database import get_supabase
 from app.utils.crypto import generate_api_key, get_key_prefix, hash_api_key
 
 
-def create_api_key(user_id: str, name: str = "Default") -> dict:
+def create_api_key(user_id: str, name: str = "Default", token_limit: int | None = None) -> dict:
     """
     Generate a new Vuzo API key for a user.
     Returns dict with id, name, key (plaintext, shown once), key_prefix, created_at.
@@ -11,13 +11,17 @@ def create_api_key(user_id: str, name: str = "Default") -> dict:
     prefix = get_key_prefix(raw_key)
     hashed = hash_api_key(raw_key)
 
-    sb = get_supabase()
-    result = sb.table("api_keys").insert({
+    row_data: dict = {
         "user_id": user_id,
         "key_prefix": prefix,
         "key_hash": hashed,
         "name": name,
-    }).execute()
+    }
+    if token_limit is not None:
+        row_data["token_limit"] = token_limit
+
+    sb = get_supabase()
+    result = sb.table("api_keys").insert(row_data).execute()
 
     row = result.data[0]
     return {

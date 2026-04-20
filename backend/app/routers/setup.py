@@ -36,16 +36,18 @@ def _rotate_openclaw_key(sb, user_id: str, key_name: str) -> str:
     """Revoke the existing named key (if any) and issue a fresh one. Returns the new plaintext key."""
     existing = (
         sb.table("api_keys")
-        .select("id")
+        .select("id, token_limit")
         .eq("user_id", user_id)
         .eq("name", key_name)
         .eq("is_active", True)
         .execute()
     )
+    old_token_limit = None
     if existing.data:
+        old_token_limit = existing.data[0].get("token_limit")
         sb.table("api_keys").update({"is_active": False}).eq("id", existing.data[0]["id"]).execute()
 
-    return create_api_key(user_id=user_id, name=key_name)["key"]
+    return create_api_key(user_id=user_id, name=key_name, token_limit=old_token_limit)["key"]
 
 
 @router.post("/setup/installer")
@@ -167,7 +169,7 @@ async def setup_installer(body: InstallerRequest):
     if existing_key.data:
         api_key = None  # already configured — installer should not overwrite config
     else:
-        api_key = create_api_key(user_id=internal_user_id, name=body.key_name)["key"]
+        api_key = create_api_key(user_id=internal_user_id, name=body.key_name, token_limit=500_000)["key"]
 
     # --- Step 4: Fetch available model ids ---
     model_rows = get_all_models()

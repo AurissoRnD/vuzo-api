@@ -162,3 +162,4 @@ class AuthContext(BaseModel):
     user_id: str
     api_key_id: str
     rate_limit_rpm: int
+    token_limit: int | None = None
