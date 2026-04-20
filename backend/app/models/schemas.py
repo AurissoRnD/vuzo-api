@@ -80,6 +80,8 @@ class APIKeyListItem(BaseModel):
     key_prefix: str
     is_active: bool
     rate_limit_rpm: int
+    token_limit: Optional[int] = None
+    tokens_used: int = 0
     created_at: datetime
     last_used_at: Optional[datetime] = None
 

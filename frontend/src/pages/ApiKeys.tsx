@@ -7,6 +7,8 @@ interface ApiKey {
   key_prefix: string
   is_active: boolean
   rate_limit_rpm: number
+  token_limit: number | null
+  tokens_used: number
   created_at: string
   last_used_at: string | null
 }
@@ -17,6 +19,28 @@ interface CreatedKey {
   key: string
   key_prefix: string
   created_at: string
+}
+
+function TokenUsage({ used, limit }: { used: number; limit: number | null }) {
+  if (limit === null) return <span className="text-zinc-500">—</span>
+  const pct = Math.min((used / limit) * 100, 100)
+  const isNearLimit = pct >= 80
+  return (
+    <div className="min-w-[120px]">
+      <div className="flex justify-between text-xs mb-1">
+        <span className={isNearLimit ? 'text-amber-400' : 'text-zinc-400'}>
+          {used.toLocaleString()}
+        </span>
+        <span className="text-zinc-600">{limit.toLocaleString()}</span>
+      </div>
+      <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
+        <div
+          className={`h-full rounded-full transition-all ${isNearLimit ? 'bg-amber-400' : 'bg-indigo-500'}`}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  )
 }
 
 export default function ApiKeys() {
@@ -66,7 +90,7 @@ export default function ApiKeys() {
               <th className="text-left px-4 py-3 font-medium">Name</th>
               <th className="text-left px-4 py-3 font-medium">Prefix</th>
               <th className="text-left px-4 py-3 font-medium">Status</th>
-              <th className="text-left px-4 py-3 font-medium">RPM</th>
+              <th className="text-left px-4 py-3 font-medium">Tokens Used</th>
               <th className="text-left px-4 py-3 font-medium">Created</th>
               <th className="text-left px-4 py-3 font-medium">Last Used</th>
               <th className="text-right px-4 py-3 font-medium"></th>
@@ -93,7 +117,9 @@ export default function ApiKeys() {
                       {k.is_active ? 'Active' : 'Revoked'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-zinc-400">{k.rate_limit_rpm}</td>
+                  <td className="px-4 py-3">
+                    <TokenUsage used={k.tokens_used} limit={k.token_limit} />
+                  </td>
                   <td className="px-4 py-3 text-zinc-400">
                     {new Date(k.created_at).toLocaleDateString()}
                   </td>
