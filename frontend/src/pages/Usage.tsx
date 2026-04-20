@@ -60,7 +60,6 @@ export default function Usage() {
   const [summary, setSummary] = useState<UsageSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [filterModel, setFilterModel] = useState('')
-  const [filterProvider, setFilterProvider] = useState('')
   const [dateRange, setDateRange] = useState<DateRange>('7d')
   const [viewTab, setViewTab] = useState<ViewTab>('daily')
 
@@ -70,7 +69,6 @@ export default function Usage() {
       const bounds = getDateBounds(dateRange)
       const params = new URLSearchParams()
       if (filterModel) params.set('model', filterModel)
-      if (filterProvider) params.set('provider', filterProvider)
       if (bounds.start_date) params.set('start_date', bounds.start_date)
       if (bounds.end_date) params.set('end_date', bounds.end_date)
       const qs = params.toString() ? `?${params}` : ''
@@ -95,7 +93,7 @@ export default function Usage() {
     }
   }
 
-  useEffect(() => { loadData() }, [filterModel, filterProvider, dateRange])
+  useEffect(() => { loadData() }, [filterModel, dateRange])
 
   const dateRanges: { key: DateRange; label: string }[] = [
     { key: 'today', label: 'Today' },
@@ -137,16 +135,6 @@ export default function Usage() {
       {/* Filters + view toggle */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex gap-3">
-          <select
-            value={filterProvider}
-            onChange={(e) => setFilterProvider(e.target.value)}
-            className="px-3 py-2 bg-zinc-900 border border-zinc-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="">All Providers</option>
-            <option value="openai">OpenAI</option>
-            <option value="anthropic">Anthropic</option>
-            <option value="google">Google</option>
-          </select>
           <input
             type="text"
             value={filterModel}
@@ -188,7 +176,6 @@ export default function Usage() {
                 <tr className="border-b border-zinc-800 text-zinc-400">
                   <th className="text-left px-4 py-3 font-medium">Date</th>
                   <th className="text-left px-4 py-3 font-medium">Model</th>
-                  <th className="text-left px-4 py-3 font-medium">Provider</th>
                   <th className="text-right px-4 py-3 font-medium">Requests</th>
                   <th className="text-right px-4 py-3 font-medium">Input</th>
                   <th className="text-right px-4 py-3 font-medium">Output</th>
@@ -198,11 +185,11 @@ export default function Usage() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-zinc-500">Loading...</td>
+                    <td colSpan={6} className="px-4 py-8 text-center text-zinc-500">Loading...</td>
                   </tr>
                 ) : daily.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-zinc-500">
+                    <td colSpan={6} className="px-4 py-8 text-center text-zinc-500">
                       No usage data for this period.
                     </td>
                   </tr>
@@ -211,7 +198,6 @@ export default function Usage() {
                     <tr key={`${d.date}-${d.model}-${i}`} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
                       <td className="px-4 py-3 text-white text-xs">{d.date}</td>
                       <td className="px-4 py-3 font-mono text-white text-xs">{d.model}</td>
-                      <td className="px-4 py-3 text-zinc-400 capitalize">{d.provider}</td>
                       <td className="px-4 py-3 text-right text-zinc-300">{d.total_requests.toLocaleString()}</td>
                       <td className="px-4 py-3 text-right text-zinc-300">{d.input_tokens.toLocaleString()}</td>
                       <td className="px-4 py-3 text-right text-zinc-300">{d.output_tokens.toLocaleString()}</td>
@@ -226,7 +212,6 @@ export default function Usage() {
               <thead>
                 <tr className="border-b border-zinc-800 text-zinc-400">
                   <th className="text-left px-4 py-3 font-medium">Model</th>
-                  <th className="text-left px-4 py-3 font-medium">Provider</th>
                   <th className="text-right px-4 py-3 font-medium">Input</th>
                   <th className="text-right px-4 py-3 font-medium">Output</th>
                   <th className="text-right px-4 py-3 font-medium">Cost</th>
@@ -237,11 +222,11 @@ export default function Usage() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-zinc-500">Loading...</td>
+                    <td colSpan={6} className="px-4 py-8 text-center text-zinc-500">Loading...</td>
                   </tr>
                 ) : logs.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-8 text-center text-zinc-500">
+                    <td colSpan={6} className="px-4 py-8 text-center text-zinc-500">
                       No usage data for this period.
                     </td>
                   </tr>
@@ -249,7 +234,6 @@ export default function Usage() {
                   logs.map((log) => (
                     <tr key={log.id} className="border-b border-zinc-800/50 hover:bg-zinc-800/30">
                       <td className="px-4 py-3 font-mono text-white text-xs">{log.model}</td>
-                      <td className="px-4 py-3 text-zinc-400 capitalize">{log.provider}</td>
                       <td className="px-4 py-3 text-right text-zinc-300">{log.input_tokens.toLocaleString()}</td>
                       <td className="px-4 py-3 text-right text-zinc-300">{log.output_tokens.toLocaleString()}</td>
                       <td className="px-4 py-3 text-right text-indigo-400">${log.vuzo_cost.toFixed(6)}</td>
