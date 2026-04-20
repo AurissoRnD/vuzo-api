@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
+from supabase import create_client, AuthApiError
 
 from app.models.database import get_supabase
 from app.config import get_settings
-from app.dependencies import get_current_user_id
 from app.services.key_service import create_api_key
 from app.services.pricing_service import get_all_models
 
@@ -55,8 +55,6 @@ async def setup_installer(body: InstallerRequest):
     needed for the SimplerClaw installer to configure OpenClaw.
     """
     settings = get_settings()
-    from supabase import create_client, AuthApiError
-
     sb_auth = create_client(settings.supabase_url, settings.supabase_key)
     sb = get_supabase()
 
@@ -207,19 +205,45 @@ async def setup_installer(body: InstallerRequest):
     }
 
 
+class RotateKeyRequest(BaseModel):
+    email: str
+    password: str
+    key_name: str = "OpenClaw"
+
+
 @router.post("/setup/rotate-key")
-async def rotate_key(
-    key_name: str = "OpenClaw",
-    user_id: str = Depends(get_current_user_id),
-):
+async def rotate_key(body: RotateKeyRequest):
     """
-    Revoke the user's current named API key and issue a fresh one.
-    Authenticate with a Supabase JWT (from /v1/auth/login) — not the vz-sk key
-    being rotated, since that may be compromised.
-    Returns the new key and a ready-to-paste OpenClaw config snippet.
+    Authenticate with email + password, revoke the existing named key, and
+    issue a fresh one. No JWT required — credentials are in the request body,
+    so this works even if the session from the installer has expired.
     """
+    settings = get_settings()
+    sb_auth = create_client(settings.supabase_url, settings.supabase_key)
+
+    try:
+        auth_response = sb_auth.auth.sign_in_with_password({
+            "email": body.email,
+            "password": body.password,
+        })
+    except AuthApiError:
+        raise HTTPException(status_code=401, detail="Invalid email or password.")
+
+    if not auth_response.user:
+        raise HTTPException(status_code=401, detail="Invalid email or password.")
+
     sb = get_supabase()
-    api_key = _rotate_openclaw_key(sb, user_id, key_name)
+    user_row = (
+        sb.table("users")
+        .select("id")
+        .eq("supabase_auth_id", auth_response.user.id)
+        .execute()
+    )
+    if not user_row.data:
+        raise HTTPException(status_code=404, detail="User not found.")
+
+    internal_user_id = user_row.data[0]["id"]
+    api_key = _rotate_openclaw_key(sb, internal_user_id, body.key_name)
 
     model_rows = get_all_models()
     model_ids = [r["model_name"] for r in model_rows]

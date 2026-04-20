@@ -87,7 +87,7 @@ class TestInstallerNewUser:
         with patch("app.routers.setup.get_supabase", return_value=sb), \
              patch("app.routers.setup.create_api_key", return_value={"key": new_key}), \
              patch("app.routers.setup.get_all_models", return_value=[{"model_name": "kimi-k2.5"}]), \
-             patch("supabase.create_client") as mock_create:
+             patch("app.routers.setup.create_client") as mock_create:
 
             mock_create.return_value.auth.sign_in_with_password.side_effect = Exception("not found")
             mock_create.return_value.auth.sign_up.return_value = auth_resp
@@ -103,7 +103,7 @@ class TestInstallerNewUser:
         with patch("app.routers.setup.get_supabase", return_value=sb), \
              patch("app.routers.setup.create_api_key", return_value={"key": "vz-sk_x"}), \
              patch("app.routers.setup.get_all_models", return_value=[{"model_name": "kimi-k2.5"}]), \
-             patch("supabase.create_client") as mock_create:
+             patch("app.routers.setup.create_client") as mock_create:
 
             mock_create.return_value.auth.sign_in_with_password.side_effect = Exception("not found")
             mock_create.return_value.auth.sign_up.return_value = auth_resp
@@ -122,7 +122,7 @@ class TestInstallerNewUser:
         with patch("app.routers.setup.get_supabase", return_value=sb), \
              patch("app.routers.setup.create_api_key", return_value={"key": "vz-sk_x"}), \
              patch("app.routers.setup.get_all_models", return_value=[{"model_name": "kimi-k2.5"}]), \
-             patch("supabase.create_client") as mock_create:
+             patch("app.routers.setup.create_client") as mock_create:
 
             mock_create.return_value.auth.sign_in_with_password.side_effect = Exception("not found")
             mock_create.return_value.auth.sign_up.return_value = auth_resp
@@ -143,7 +143,7 @@ class TestInstallerExistingUser:
         with patch("app.routers.setup.get_supabase", return_value=sb), \
              patch("app.routers.setup.create_api_key") as mock_create_key, \
              patch("app.routers.setup.get_all_models", return_value=[{"model_name": "kimi-k2.5"}]), \
-             patch("supabase.create_client") as mock_create:
+             patch("app.routers.setup.create_client") as mock_create:
 
             mock_create.return_value.auth.sign_in_with_password.return_value = auth_resp
 
@@ -180,7 +180,7 @@ class TestInstallerStarterGrantExploit:
         with patch("app.routers.setup.get_supabase", return_value=sb), \
              patch("app.routers.setup.create_api_key", return_value={"key": "vz-sk_new"}), \
              patch("app.routers.setup.get_all_models", return_value=[{"model_name": "kimi-k2.5"}]), \
-             patch("supabase.create_client") as mock_create:
+             patch("app.routers.setup.create_client") as mock_create:
 
             mock_create.return_value.auth.sign_in_with_password.return_value = auth_resp
 
@@ -192,33 +192,67 @@ class TestInstallerStarterGrantExploit:
         assert len(starter_txs) == 0
 
 
+ROTATE_BODY = {"email": "test@example.com", "password": "Password123!", "key_name": "OpenClaw"}
+
+
+def _make_rotate_supabase(internal_user_id: str = "user-123"):
+    sb = MagicMock()
+    sb.table.return_value.select.return_value.eq.return_value.execute.return_value = MagicMock(
+        data=[{"id": internal_user_id}]
+    )
+    sb.table.return_value.select.return_value.eq.return_value.eq.return_value.eq.return_value.execute.return_value = MagicMock(data=[])
+    return sb
+
+
+def _make_rotate_auth():
+    mock_user = MagicMock()
+    mock_user.id = "supabase-uid-abc"
+    mock_response = MagicMock()
+    mock_response.user = mock_user
+    return mock_response
+
+
 class TestRotateKey:
-    def test_rotate_returns_new_key(self, authed_client):
-        sb = MagicMock()
-        sb.table.return_value.select.return_value.eq.return_value.eq.return_value.eq.return_value.execute.return_value = MagicMock(data=[])
+    def test_rotate_returns_new_key(self):
+        sb = _make_rotate_supabase()
+        mock_auth_client = MagicMock()
+        mock_auth_client.auth.sign_in_with_password.return_value = _make_rotate_auth()
 
         with patch("app.routers.setup.get_supabase", return_value=sb), \
+             patch("app.routers.setup.create_client", return_value=mock_auth_client), \
              patch("app.routers.setup.create_api_key", return_value={"key": "vz-sk_rotated"}), \
              patch("app.routers.setup.get_all_models", return_value=[{"model_name": "kimi-k2.5"}]):
 
-            resp = authed_client.post("/v1/setup/rotate-key?key_name=OpenClaw")
+            resp = TestClient(app).post("/v1/setup/rotate-key", json=ROTATE_BODY)
 
         assert resp.status_code == 200
         assert resp.json()["api_key"] == "vz-sk_rotated"
 
-    def test_rotate_without_auth_returns_401(self):
+    def test_rotate_without_body_returns_422(self):
         resp = TestClient(app).post("/v1/setup/rotate-key")
-        assert resp.status_code in (401, 403)
+        assert resp.status_code == 422
 
-    def test_rotate_response_includes_openclaw_config(self, authed_client):
-        sb = MagicMock()
-        sb.table.return_value.select.return_value.eq.return_value.eq.return_value.eq.return_value.execute.return_value = MagicMock(data=[])
+    def test_rotate_bad_credentials_returns_401(self):
+        from supabase import AuthApiError
+        mock_auth_client = MagicMock()
+        mock_auth_client.auth.sign_in_with_password.side_effect = AuthApiError("Invalid login", 400, {})
+
+        with patch("app.routers.setup.create_client", return_value=mock_auth_client):
+            resp = TestClient(app).post("/v1/setup/rotate-key", json=ROTATE_BODY)
+
+        assert resp.status_code == 401
+
+    def test_rotate_response_includes_openclaw_config(self):
+        sb = _make_rotate_supabase()
+        mock_auth_client = MagicMock()
+        mock_auth_client.auth.sign_in_with_password.return_value = _make_rotate_auth()
 
         with patch("app.routers.setup.get_supabase", return_value=sb), \
+             patch("app.routers.setup.create_client", return_value=mock_auth_client), \
              patch("app.routers.setup.create_api_key", return_value={"key": "vz-sk_rotated"}), \
              patch("app.routers.setup.get_all_models", return_value=[{"model_name": "kimi-k2.5"}]):
 
-            resp = authed_client.post("/v1/setup/rotate-key")
+            resp = TestClient(app).post("/v1/setup/rotate-key", json=ROTATE_BODY)
 
         assert "openclaw_config" in resp.json()
         assert "models" in resp.json()
