@@ -21,11 +21,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session)
-      setLoading(false)
-    })
-
+    // onAuthStateChange fires immediately with INITIAL_SESSION — including when
+    // Supabase detects tokens in the URL hash. Using it as the single source of
+    // truth prevents a race where getSession() resolves before hash processing
+    // and ProtectedRoute redirects to /login before the session is established.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, session) => {
         setSession(session)

@@ -191,7 +191,7 @@ async def setup_installer(body: InstallerRequest):
             f"#access_token={supabase_session.access_token}"
             f"&refresh_token={supabase_session.refresh_token}"
             f"&token_type=bearer"
-            f"&type=signup"
+            f"&type=signin"
         )
 
     return {
