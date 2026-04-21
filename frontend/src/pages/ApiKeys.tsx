@@ -13,13 +13,6 @@ interface ApiKey {
   last_used_at: string | null
 }
 
-interface CreatedKey {
-  id: string
-  name: string
-  key: string
-  key_prefix: string
-  created_at: string
-}
 
 function TokenUsage({ used, limit }: { used: number; limit: number | null }) {
   if (limit === null) return <span className="text-zinc-500">—</span>
@@ -46,7 +39,6 @@ function TokenUsage({ used, limit }: { used: number; limit: number | null }) {
 export default function ApiKeys() {
   const [keys, setKeys] = useState<ApiKey[]>([])
   const [loading, setLoading] = useState(true)
-  const [rotating, setRotating] = useState<string | null>(null)
 
   const loadKeys = async () => {
     try {
@@ -60,20 +52,6 @@ export default function ApiKeys() {
   }
 
   useEffect(() => { loadKeys() }, [])
-
-  const handleRotate = async (key: ApiKey) => {
-    if (!confirm(`Rotate "${key.name}"? Your old key will stop working immediately.`)) return
-    setRotating(key.id)
-    try {
-      await api.del(`/api-keys/${key.id}`)
-      await api.post<CreatedKey>('/api-keys', { name: key.name })
-      await loadKeys()
-    } catch {
-      // ignore
-    } finally {
-      setRotating(null)
-    }
-  }
 
   if (loading) return <div className="text-zinc-400">Loading...</div>
 
