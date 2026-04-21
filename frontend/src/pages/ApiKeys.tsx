@@ -126,17 +126,7 @@ export default function ApiKeys() {
                   <td className="px-4 py-3 text-zinc-400">
                     {k.last_used_at ? new Date(k.last_used_at).toLocaleDateString() : 'Never'}
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    {k.is_active && (
-                      <button
-                        onClick={() => handleRotate(k)}
-                        disabled={rotating === k.id}
-                        className="text-zinc-400 hover:text-white disabled:opacity-40 text-xs font-medium transition-colors"
-                      >
-                        {rotating === k.id ? 'Rotating...' : 'Rotate'}
-                      </button>
-                    )}
-                  </td>
+                  <td className="px-4 py-3"></td>
                 </tr>
               ))
             )}

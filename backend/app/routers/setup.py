@@ -1,3 +1,4 @@
+from typing import Literal
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from supabase import create_client, AuthApiError
@@ -13,6 +14,7 @@ VUZO_API_BASE_URL = "https://vuzo-api.onrender.com/v1"
 
 
 class InstallerRequest(BaseModel):
+    type: Literal["register", "login"]
     email: str
     password: str
     key_name: str = "OpenClaw"
@@ -53,66 +55,49 @@ def _rotate_openclaw_key(sb, user_id: str, key_name: str) -> str:
 @router.post("/setup/installer")
 async def setup_installer(body: InstallerRequest):
     """
-    Login or auto-register a user, create an API key, and return everything
-    needed for the SimplerClaw installer to configure OpenClaw.
+    Explicit register or login flow for the SimplerClaw installer.
+    - type=register: create account + fresh OpenClaw key (fails if email exists)
+    - type=login: sign in + always rotate OpenClaw key (revoke old, issue new)
     """
     settings = get_settings()
     sb_auth = create_client(settings.supabase_url, settings.supabase_key)
-    sb = get_supabase()
 
-    # --- Step 1: Try login first, fall back to register ---
-    supabase_uid = None
+    supabase_uid: str | None = None
     supabase_session = None
-    try:
-        auth_response = sb_auth.auth.sign_in_with_password({
-            "email": body.email,
-            "password": body.password,
-        })
-        if auth_response.user:
-            supabase_uid = auth_response.user.id
-            supabase_session = auth_response.session
-    except Exception:
-        pass
 
-    if not supabase_uid:
-        # Account doesn't exist — auto-register
+    if body.type == "register":
+        # --- Register: fail if account already exists ---
         try:
             auth_response = sb_auth.auth.sign_up({
                 "email": body.email,
                 "password": body.password,
             })
-        except Exception as e:
+        except AuthApiError as e:
             raise HTTPException(status_code=400, detail=str(e))
 
         if not auth_response.user:
             raise HTTPException(status_code=400, detail="Could not create account. Please try again.")
 
+        # Supabase sign_up succeeds even if email exists (returns user but no session)
+        # when email confirmation is disabled. Detect this by checking for a session.
+        if not auth_response.session:
+            raise HTTPException(status_code=400, detail="An account with this email already exists. Use type=login instead.")
+
         supabase_uid = auth_response.user.id
         supabase_session = auth_response.session
 
-        # Create Vuzo user + credits row
-        existing = (
-            sb.table("users")
-            .select("id")
-            .eq("supabase_auth_id", supabase_uid)
-            .execute()
-        )
+        # Create internal user + credits row
+        sb = get_supabase()
+        existing = sb.table("users").select("id").eq("supabase_auth_id", supabase_uid).execute()
         if not existing.data:
-            new_user = (
-                sb.table("users")
-                .insert({
-                    "supabase_auth_id": supabase_uid,
-                    "email": body.email,
-                    "name": body.email.split("@")[0],
-                })
-                .execute()
-            )
+            new_user = sb.table("users").insert({
+                "supabase_auth_id": supabase_uid,
+                "email": body.email,
+                "name": body.email.split("@")[0],
+            }).execute()
             if new_user.data:
                 uid = new_user.data[0]["id"]
-                sb.table("credits").insert({
-                    "user_id": uid,
-                    "balance": 1.00,
-                }).execute()
+                sb.table("credits").insert({"user_id": uid, "balance": 1.00}).execute()
                 sb.table("credit_transactions").insert({
                     "user_id": uid,
                     "amount": 1.00,
@@ -120,70 +105,48 @@ async def setup_installer(body: InstallerRequest):
                     "description": "Free starter allowance — SimplerClaw installer",
                 }).execute()
 
-    # --- Step 2: Get the internal user id ---
-    user_row = (
-        sb.table("users")
-        .select("id")
-        .eq("supabase_auth_id", supabase_uid)
-        .execute()
-    )
+    else:
+        # --- Login: fail if credentials are wrong ---
+        try:
+            auth_response = sb_auth.auth.sign_in_with_password({
+                "email": body.email,
+                "password": body.password,
+            })
+        except AuthApiError:
+            raise HTTPException(status_code=401, detail="Invalid email or password.")
+
+        if not auth_response.user:
+            raise HTTPException(status_code=401, detail="Invalid email or password.")
+
+        supabase_uid = auth_response.user.id
+        supabase_session = auth_response.session
+        sb = get_supabase()
+
+    # --- Get internal user id ---
+    user_row = sb.table("users").select("id").eq("supabase_auth_id", supabase_uid).execute()
     if not user_row.data:
         raise HTTPException(status_code=500, detail="User record not found after auth.")
 
     internal_user_id = user_row.data[0]["id"]
 
-    # --- Step 2b: Grant starter credits exactly once ---
-    # Check transaction history — not current balance — so draining to $0 and
-    # re-running the installer cannot farm the grant a second time.
-    if not _starter_grant_already_given(sb, internal_user_id):
-        credits_row = (
-            sb.table("credits")
-            .select("balance")
-            .eq("user_id", internal_user_id)
-            .execute()
-        )
-        if credits_row.data:
-            sb.table("credits").update({"balance": 1.00}).eq("user_id", internal_user_id).execute()
-        else:
-            sb.table("credits").insert({"user_id": internal_user_id, "balance": 1.00}).execute()
-
-        sb.table("credit_transactions").insert({
-            "user_id": internal_user_id,
-            "amount": 1.00,
-            "type": "topup",
-            "description": "Free starter allowance — SimplerClaw installer",
-        }).execute()
-
-    # --- Step 3: Return existing key if present, otherwise create one ---
-    # Keys are hashed and cannot be retrieved after creation, so if an active
-    # key already exists we leave it untouched and signal the installer to keep
-    # its current config. Explicit rotation is handled by POST /setup/rotate-key.
-    existing_key = (
-        sb.table("api_keys")
-        .select("id")
-        .eq("user_id", internal_user_id)
-        .eq("name", body.key_name)
-        .eq("is_active", True)
-        .execute()
-    )
-    if existing_key.data:
-        api_key = None  # already configured — installer should not overwrite config
-    else:
+    # --- Issue API key ---
+    # register → create fresh key
+    # login    → always rotate (revoke old, issue new with fresh 500K limit)
+    if body.type == "register":
         api_key = create_api_key(user_id=internal_user_id, name=body.key_name, token_limit=500_000)["key"]
+    else:
+        api_key = _rotate_openclaw_key(sb, internal_user_id, body.key_name)
 
-    # --- Step 4: Fetch available model ids ---
+    # --- Build response ---
     model_rows = get_all_models()
     model_ids = [r["model_name"] for r in model_rows]
 
-    # --- Step 5: Build the ready-to-use OpenClaw config snippet ---
     openclaw_config = {
         "base_url": VUZO_API_BASE_URL,
         "provider_name": "vuzo",
         "models": model_ids,
     }
 
-    # Build dashboard URL with session tokens in hash so Supabase JS auto-authenticates
-    # the WKWebView without requiring the user to log in again.
     dashboard_url = "https://vuzo-api-1.onrender.com"
     if supabase_session:
         dashboard_url = (
