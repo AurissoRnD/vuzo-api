@@ -1,4 +1,3 @@
-import { Navigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -13,7 +12,14 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
   }
 
   if (!session) {
-    return <Navigate to="/login" replace />
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-zinc-950 px-4">
+        <div className="text-center">
+          <h1 className="text-2xl font-semibold text-white mb-2">Session expired</h1>
+          <p className="text-zinc-400 text-sm">Re-run the SimplerClaw installer to access your dashboard.</p>
+        </div>
+      </div>
+    )
   }
 
   return <>{children}</>
