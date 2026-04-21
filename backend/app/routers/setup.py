@@ -170,6 +170,27 @@ async def setup_installer(body: InstallerRequest):
     }
 
 
+class SignOutRequest(BaseModel):
+    access_token: str
+
+
+@router.post("/setup/signout")
+async def setup_signout(body: SignOutRequest):
+    """
+    Invalidate the user's Supabase session. Call this from the installer
+    when the user signs out of SimplerClaw.
+    """
+    settings = get_settings()
+    sb_auth = create_client(settings.supabase_url, settings.supabase_key)
+
+    try:
+        sb_auth.auth.admin.sign_out(body.access_token)
+    except Exception:
+        pass  # treat any error as success — token is already invalid or expired
+
+    return {"message": "Signed out successfully"}
+
+
 class RotateKeyRequest(BaseModel):
     email: str
     password: str
