@@ -26,11 +26,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const init = async () => {
       // Parse hash tokens directly — more reliable than waiting for Supabase
       // to auto-detect them, which races against the INITIAL_SESSION event.
-      // Tokens arrive as query params (not hash) so they survive server redirects
-      // in Electron embedded browsers, which can drop hash fragments.
-      const params = new URLSearchParams(window.location.search)
-      const accessToken = params.get('access_token')
-      const refreshToken = params.get('refresh_token')
+      // Check query params first, fall back to hash fragment.
+      // SimplerClaw constructs the URL with #access_token= directly,
+      // so we must handle both formats.
+      const qp = new URLSearchParams(window.location.search)
+      const hp = new URLSearchParams(window.location.hash.substring(1))
+      const accessToken = qp.get('access_token') ?? hp.get('access_token')
+      const refreshToken = qp.get('refresh_token') ?? hp.get('refresh_token')
 
       if (accessToken && refreshToken) {
         const { data } = await supabase.auth.setSession({
