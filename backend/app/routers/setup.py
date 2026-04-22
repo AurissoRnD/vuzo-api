@@ -171,24 +171,31 @@ async def setup_installer(body: InstallerRequest):
 
 
 class SignOutRequest(BaseModel):
-    access_token: str
+    refresh_token: str
+    redirect_url: str | None = None
 
 
 @router.post("/setup/signout")
 async def setup_signout(body: SignOutRequest):
     """
-    Invalidate the user's Supabase session. Call this from the installer
-    when the user signs out of SimplerClaw.
+    Invalidate the user's Supabase session using the refresh token.
+    Refresh tokens last weeks, unlike access tokens which expire in 3600s.
+    Pass redirect_url to tell the caller where to send the user after signout.
     """
     settings = get_settings()
     sb_auth = create_client(settings.supabase_url, settings.supabase_key)
 
     try:
-        sb_auth.auth.admin.sign_out(body.access_token)
+        refreshed = sb_auth.auth.refresh_session(body.refresh_token)
+        if refreshed.session:
+            sb_auth.auth.admin.sign_out(refreshed.session.access_token)
     except Exception:
-        pass  # treat any error as success — token is already invalid or expired
+        pass  # treat any error as success — session is already invalid or expired
 
-    return {"message": "Signed out successfully"}
+    return {
+        "message": "Signed out successfully",
+        "redirect_url": body.redirect_url,
+    }
 
 
 class RotateKeyRequest(BaseModel):

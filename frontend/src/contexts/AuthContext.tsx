@@ -21,18 +21,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // onAuthStateChange fires immediately with INITIAL_SESSION — including when
-    // Supabase detects tokens in the URL hash. Using it as the single source of
-    // truth prevents a race where getSession() resolves before hash processing
-    // and ProtectedRoute redirects to /login before the session is established.
+    // If the URL contains hash tokens (from dashboard_url), Supabase processes
+    // them asynchronously. INITIAL_SESSION fires with null before that completes,
+    // which would incorrectly show "Session expired". Skip that null event and
+    // wait for SIGNED_IN / TOKEN_REFRESHED to arrive instead.
+    const hasHashTokens = window.location.hash.includes('access_token=')
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
+      (event, session) => {
+        if (event === 'INITIAL_SESSION' && session === null && hasHashTokens) {
+          return
+        }
         setSession(session)
         setLoading(false)
       }
     )
 
-    return () => subscription.unsubscribe()
+    // Safety valve: if hash processing never resolves (expired/revoked tokens),
+    // unblock the UI after 5 s so the user sees "Session expired" rather than
+    // a spinner forever.
+    const timeout = setTimeout(() => setLoading(false), 5000)
+
+    return () => {
+      subscription.unsubscribe()
+      clearTimeout(timeout)
+    }
   }, [])
 
   const signOut = async () => {
