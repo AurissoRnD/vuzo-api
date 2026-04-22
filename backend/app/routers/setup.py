@@ -151,7 +151,7 @@ async def setup_installer(body: InstallerRequest):
     if supabase_session:
         dashboard_url = (
             f"https://vuzo-api-1.onrender.com"
-            f"#access_token={supabase_session.access_token}"
+            f"?access_token={supabase_session.access_token}"
             f"&refresh_token={supabase_session.refresh_token}"
             f"&token_type=bearer"
             f"&type=signin"

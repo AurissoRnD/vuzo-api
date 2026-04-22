@@ -26,8 +26,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const init = async () => {
       // Parse hash tokens directly — more reliable than waiting for Supabase
       // to auto-detect them, which races against the INITIAL_SESSION event.
-      const hash = window.location.hash.substring(1)
-      const params = new URLSearchParams(hash)
+      // Tokens arrive as query params (not hash) so they survive server redirects
+      // in Electron embedded browsers, which can drop hash fragments.
+      const params = new URLSearchParams(window.location.search)
       const accessToken = params.get('access_token')
       const refreshToken = params.get('refresh_token')
 
