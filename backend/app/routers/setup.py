@@ -64,6 +64,7 @@ async def setup_installer(body: InstallerRequest):
 
     supabase_uid: str | None = None
     supabase_session = None
+    internal_user_id: str | None = None
 
     if body.type == "register":
         # --- Register: fail if account already exists ---
@@ -122,12 +123,45 @@ async def setup_installer(body: InstallerRequest):
         supabase_session = auth_response.session
         sb = get_supabase()
 
-    # --- Get internal user id ---
-    user_row = sb.table("users").select("id").eq("supabase_auth_id", supabase_uid).execute()
-    if not user_row.data:
-        raise HTTPException(status_code=500, detail="User record not found after auth.")
+        # --- Single-device enforcement ---
+        # Check if this user already has an active session on another device.
+        user_row = (
+            sb.table("users")
+            .select("id, active_refresh_token")
+            .eq("supabase_auth_id", supabase_uid)
+            .execute()
+        )
+        if not user_row.data:
+            raise HTTPException(status_code=500, detail="User record not found after auth.")
 
-    internal_user_id = user_row.data[0]["id"]
+        internal_user_id = user_row.data[0]["id"]
+        stored_token = user_row.data[0].get("active_refresh_token")
+
+        if stored_token:
+            try:
+                check = sb_auth.auth.refresh_session(stored_token)
+                if check.session:
+                    # Still active on another device — reject and clean up the new session
+                    try:
+                        sb_auth.auth.admin.sign_out(supabase_session.access_token)
+                    except Exception:
+                        pass
+                    raise HTTPException(
+                        status_code=409,
+                        detail="You are already signed in on another device. Please sign out first."
+                    )
+            except AuthApiError:
+                pass  # Stored token is dead — allow login
+
+    # --- Get internal user id (resolved above for login; look up now for register) ---
+    if internal_user_id is None:
+        user_row = sb.table("users").select("id").eq("supabase_auth_id", supabase_uid).execute()
+        if not user_row.data:
+            raise HTTPException(status_code=500, detail="User record not found after auth.")
+        internal_user_id = user_row.data[0]["id"]
+
+    # --- Persist active session so future logins from other devices are blocked ---
+    sb.table("users").update({"active_refresh_token": supabase_session.refresh_token}).eq("id", internal_user_id).execute()
 
     # --- Issue API key ---
     # register → create fresh key
@@ -188,6 +222,10 @@ async def setup_signout(body: SignOutRequest):
             sb_auth.auth.admin.sign_out(refreshed.session.access_token)
     except Exception:
         pass  # treat any error as success — session is already invalid or expired
+
+    # Clear the stored active session so the user can log in from another device
+    sb = get_supabase()
+    sb.table("users").update({"active_refresh_token": None}).eq("active_refresh_token", body.refresh_token).execute()
 
     return {
         "message": "Signed out successfully",
