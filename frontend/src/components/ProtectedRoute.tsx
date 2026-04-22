@@ -17,6 +17,7 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
         <div className="text-center">
           <h1 className="text-2xl font-semibold text-white mb-2">Session expired</h1>
           <p className="text-zinc-400 text-sm">Re-run the SimplerClaw installer to access your dashboard.</p>
+          <p className="text-zinc-600 text-xs mt-4 break-all max-w-lg">{window.location.href}</p>
         </div>
       </div>
     )
