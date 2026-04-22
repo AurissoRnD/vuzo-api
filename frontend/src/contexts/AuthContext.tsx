@@ -21,30 +21,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // If the URL contains hash tokens (from dashboard_url), Supabase processes
-    // them asynchronously. INITIAL_SESSION fires with null before that completes,
-    // which would incorrectly show "Session expired". Skip that null event and
-    // wait for SIGNED_IN / TOKEN_REFRESHED to arrive instead.
-    const hasHashTokens = window.location.hash.includes('access_token=')
+    let cancelled = false
+
+    const init = async () => {
+      // Parse hash tokens directly — more reliable than waiting for Supabase
+      // to auto-detect them, which races against the INITIAL_SESSION event.
+      const hash = window.location.hash.substring(1)
+      const params = new URLSearchParams(hash)
+      const accessToken = params.get('access_token')
+      const refreshToken = params.get('refresh_token')
+
+      if (accessToken && refreshToken) {
+        const { data } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        })
+        // Remove tokens from URL bar after consuming them
+        window.history.replaceState(null, '', window.location.pathname)
+        if (!cancelled) {
+          setSession(data.session)
+          setLoading(false)
+        }
+      } else {
+        const { data } = await supabase.auth.getSession()
+        if (!cancelled) {
+          setSession(data.session)
+          setLoading(false)
+        }
+      }
+    }
+
+    init()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === 'INITIAL_SESSION' && session === null && hasHashTokens) {
-          return
-        }
-        setSession(session)
-        setLoading(false)
+      (_event, session) => {
+        if (!cancelled) setSession(session)
       }
     )
 
-    // Safety valve: if hash processing never resolves (expired/revoked tokens),
-    // unblock the UI after 5 s so the user sees "Session expired" rather than
-    // a spinner forever.
-    const timeout = setTimeout(() => setLoading(false), 5000)
-
     return () => {
+      cancelled = true
       subscription.unsubscribe()
-      clearTimeout(timeout)
     }
   }, [])
 
