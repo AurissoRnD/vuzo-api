@@ -34,23 +34,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const accessToken = qp.get('access_token') ?? hp.get('access_token')
       const refreshToken = qp.get('refresh_token') ?? hp.get('refresh_token')
 
+      let resolvedSession = null
+
       if (accessToken && refreshToken) {
+        // Both tokens present — set session directly (no network call needed)
         const { data } = await supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken,
         })
-        // Remove tokens from URL bar after consuming them
-        window.history.replaceState(null, '', window.location.pathname)
-        if (!cancelled) {
-          setSession(data.session)
-          setLoading(false)
-        }
+        resolvedSession = data.session
+      } else if (refreshToken) {
+        // Only refresh_token present — new flow from SimplerClaw keychain.
+        // Exchanges the refresh_token for a fresh session via Supabase.
+        const { data } = await supabase.auth.refreshSession({ refresh_token: refreshToken })
+        resolvedSession = data.session
       } else {
+        // No URL tokens — use existing session from localStorage
         const { data } = await supabase.auth.getSession()
-        if (!cancelled) {
-          setSession(data.session)
-          setLoading(false)
-        }
+        resolvedSession = data.session
+      }
+
+      // Clean tokens from URL bar regardless of which path was taken
+      if (accessToken || refreshToken) {
+        window.history.replaceState(null, '', window.location.pathname)
+      }
+
+      if (!cancelled) {
+        setSession(resolvedSession)
+        setLoading(false)
       }
     }
 
