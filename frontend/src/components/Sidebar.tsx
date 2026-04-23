@@ -1,5 +1,4 @@
 import { NavLink } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1' },
@@ -12,8 +11,6 @@ const navItems = [
 ]
 
 export default function Sidebar() {
-  const { user, signOut } = useAuth()
-
   return (
     <aside className="w-64 bg-zinc-900 border-r border-zinc-800 flex flex-col min-h-screen">
       <div className="p-5 border-b border-zinc-800">
@@ -42,16 +39,6 @@ export default function Sidebar() {
           </NavLink>
         ))}
       </nav>
-
-      <div className="p-4 border-t border-zinc-800">
-        <div className="text-sm text-zinc-400 truncate mb-2">{user?.email}</div>
-        <button
-          onClick={signOut}
-          className="w-full text-left text-sm text-zinc-500 hover:text-red-400 transition-colors"
-        >
-          Sign out
-        </button>
-      </div>
     </aside>
   )
 }
