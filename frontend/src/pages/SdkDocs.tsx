@@ -55,6 +55,11 @@ export default function SdkDocs() {
         <div className="lg:col-span-3 space-y-12">
 
           <Section id="installation" title="Installation">
+            <div className="mb-4 p-3 bg-zinc-800/60 border border-zinc-700 rounded-lg">
+              <p className="text-zinc-300 text-sm">
+                <strong className="text-white">Prerequisite:</strong> Your <code className="px-1.5 py-0.5 bg-zinc-900 rounded text-xs text-indigo-400">vz-sk_</code> API key is generated automatically when you authenticate through the SimplerClaw installer. Keys are currently for use within SimplerClaw / OpenClaw only.
+              </p>
+            </div>
             <p className="text-zinc-300 mb-4">
               Requires Python 3.8+. Install the base package with <code className="px-1.5 py-0.5 bg-zinc-900 border border-zinc-800 rounded text-xs">requests</code> and <code className="px-1.5 py-0.5 bg-zinc-900 border border-zinc-800 rounded text-xs">pydantic</code>. Add the <code className="px-1.5 py-0.5 bg-zinc-900 border border-zinc-800 rounded text-xs">async</code> extra for <code className="px-1.5 py-0.5 bg-zinc-900 border border-zinc-800 rounded text-xs">httpx</code>-based async support.
             </p>
@@ -123,7 +128,7 @@ import asyncio
 # As a context manager (recommended — ensures connection cleanup)
 async def main():
     async with AsyncVuzo("vz-sk_your_key_here") as client:
-        response = await client.chat.complete("gpt-4o-mini", "Hello!")
+        response = await client.chat.complete("kimi-k2.5", "Hello!")
         print(response)
 
 asyncio.run(main())
@@ -131,7 +136,7 @@ asyncio.run(main())
 # Or instantiate manually and close when done
 async def main():
     client = AsyncVuzo("vz-sk_your_key_here")
-    response = await client.chat.complete("gpt-4o-mini", "Hello!")
+    response = await client.chat.complete("kimi-k2.5", "Hello!")
     await client.close()
     return response`} />
           </Section>
@@ -144,12 +149,12 @@ async def main():
               returns="str"
               desc="Convenience one-liner. Sends a single user message and returns the assistant's text content directly."
               params={[
-                { name: 'model', type: 'str', desc: 'Model ID, e.g. "gpt-4o-mini"' },
+                { name: 'model', type: 'str', desc: 'Model ID, e.g. "kimi-k2.5"' },
                 { name: 'prompt', type: 'str', desc: 'The user message' },
                 { name: '**kwargs', type: 'any', desc: 'Forwarded to create() — temperature, max_tokens, etc.' },
               ]}
             />
-            <CodeBlock language="python" code={`text = client.chat.complete("gpt-4o-mini", "Explain relativity.")
+            <CodeBlock language="python" code={`text = client.chat.complete("kimi-k2.5", "Explain relativity.")
 print(text)  # plain string`} />
 
             <MethodBlock
@@ -166,7 +171,7 @@ print(text)  # plain string`} />
               ]}
             />
             <CodeBlock language="python" code={`response = client.chat.create(
-    model="gpt-4o-mini",
+    model="kimi-k2.5",
     messages=[
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "What is 2 + 2?"},
@@ -188,7 +193,7 @@ print(f"Tokens: {response.usage.total_tokens}")`} />
                 { name: '**kwargs', type: 'any', desc: 'Forwarded to create()' },
               ]}
             />
-            <CodeBlock language="python" code={`for chunk in client.chat.stream("gpt-4o-mini", [{"role": "user", "content": "Count to 5."}]):
+            <CodeBlock language="python" code={`for chunk in client.chat.stream("kimi-k2.5", [{"role": "user", "content": "Count to 5."}]):
     print(chunk, end="", flush=True)
 print()`} />
 
@@ -216,7 +221,7 @@ print()`} />
               returns="ModelPricingItem"
               desc="Fetch a single model's details. Calls GET /v1/models/{model_name} directly."
               params={[
-                { name: 'model_name', type: 'str', desc: 'Model ID, e.g. "gpt-4o-mini"' },
+                { name: 'model_name', type: 'str', desc: 'Model ID, e.g. "kimi-k2.5"' },
               ]}
             />
             <CodeBlock language="python" code={`# List all models
@@ -225,13 +230,13 @@ for m in models:
     print(f"{m.id} | {m.provider} | in: \${m.input_price_per_million}/M | out: \${m.output_price_per_million}/M")
 
 # Fetch a single model
-model = client.models.get("gpt-4o-mini")
-print(model.provider)  # "openai"`} />
+model = client.models.get("kimi-k2.5")
+print(model.provider)  # "moonshot"`} />
 
             <h4 className="text-white font-semibold mt-6 mb-3">ModelPricingItem fields</h4>
             <ParamTable params={[
               { name: 'id', type: 'str', desc: 'Model ID used in API calls' },
-              { name: 'provider', type: 'str', desc: '"openai" | "xai" | "google" | "anthropic"' },
+              { name: 'provider', type: 'str', desc: '"moonshot" | "openai" | "xai" | "google" | "anthropic"' },
               { name: 'input_price_per_million', type: 'float', desc: 'USD per 1M input tokens' },
               { name: 'output_price_per_million', type: 'float', desc: 'USD per 1M output tokens' },
             ]} />
@@ -280,7 +285,7 @@ for day in daily:
           </Section>
 
           <Section id="billing" title="billing">
-            <p className="text-zinc-300 mb-4">Accessed via <code className="px-1.5 py-0.5 bg-zinc-900 border border-zinc-800 rounded text-xs">client.billing</code>.</p>
+            <p className="text-zinc-300 mb-4">Accessed via <code className="px-1.5 py-0.5 bg-zinc-900 border border-zinc-800 rounded text-xs">client.billing</code>. Credits are topped up via Polar — use the <strong className="text-white">Billing</strong> page in your dashboard to add funds.</p>
 
             <MethodBlock
               name="billing.get_balance()"
@@ -393,7 +398,7 @@ client.api_keys.delete(keys[0].id)`} />
 client = Vuzo("vz-sk_your_key_here")
 
 try:
-    response = client.chat.complete("gpt-4o-mini", "Hello!")
+    response = client.chat.complete("kimi-k2.5", "Hello!")
 except AuthenticationError:
     print("Invalid API key — check your vz-sk_ key")
 except InsufficientCreditsError:

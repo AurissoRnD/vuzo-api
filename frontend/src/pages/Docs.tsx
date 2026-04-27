@@ -9,18 +9,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL
   : '/v1'
 
 const PLAYGROUND_MODELS = [
-  { group: 'OpenAI',  id: 'gpt-4o' },
-  { group: 'OpenAI',  id: 'gpt-4o-mini' },
-  { group: 'OpenAI',  id: 'gpt-4.1' },
-  { group: 'OpenAI',  id: 'gpt-4.1-mini' },
-  { group: 'OpenAI',  id: 'gpt-4.1-nano' },
-  { group: 'xAI',     id: 'grok-3' },
-  { group: 'xAI',     id: 'grok-3-mini' },
-  { group: 'xAI',     id: 'grok-2' },
-  { group: 'Google',  id: 'gemini-2.0-flash' },
-  { group: 'Google',  id: 'gemini-3-flash' },
-  { group: 'Anthropic', id: 'claude-3-5-sonnet-20241022' },
-  { group: 'Anthropic', id: 'claude-3-5-haiku-20241022' },
+  { group: 'Moonshot', id: 'kimi-k2.5' },
 ]
 
 export default function Docs() {
@@ -33,13 +22,9 @@ from vuzo import Vuzo
 
 client = Vuzo("vz-sk_your_key_here")
 
-# Simple chat — works with any model
-response = client.chat.complete("gpt-4o-mini", "Hello!")
-print(response)
-
-# Switch providers by changing the model name
-response = client.chat.complete("gemini-2.0-flash", "Hello!")
-response = client.chat.complete("grok-3-mini", "Hello!")`,
+# Simple chat with kimi-k2.5
+response = client.chat.complete("kimi-k2.5", "Hello!")
+print(response)`,
     },
     {
       label: 'Python (OpenAI SDK)',
@@ -52,7 +37,7 @@ client = OpenAI(
 )
 
 response = client.chat.completions.create(
-    model="gpt-4o-mini",
+    model="kimi-k2.5",
     messages=[{"role": "user", "content": "Hello!"}]
 )
 
@@ -67,7 +52,7 @@ response = requests.post(
     "${API_BASE}/chat/completions",
     headers={"Authorization": "Bearer vz-sk_your_key_here"},
     json={
-        "model": "gpt-4o-mini",
+        "model": "kimi-k2.5",
         "messages": [{"role": "user", "content": "Hello!"}]
     }
 )
@@ -85,7 +70,7 @@ print(data["choices"][0]["message"]["content"])`,
     'Content-Type': 'application/json'
   },
   body: JSON.stringify({
-    model: 'gpt-4o-mini',
+    model: 'kimi-k2.5',
     messages: [{role: 'user', content: 'Hello!'}]
   })
 })
@@ -100,7 +85,7 @@ console.log(data.choices[0].message.content)`,
   -H "Authorization: Bearer vz-sk_your_key_here" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "model": "gpt-4o-mini",
+    "model": "kimi-k2.5",
     "messages": [{"role": "user", "content": "Hello!"}]
   }'`,
     },
@@ -118,7 +103,7 @@ client = OpenAI(
 )
 
 stream = client.chat.completions.create(
-    model="gpt-4o-mini",
+    model="kimi-k2.5",
     messages=[{"role": "user", "content": "Count to 10"}],
     stream=True
 )
@@ -172,7 +157,7 @@ while (true) {
       <div className="mb-10">
         <h1 className="text-4xl font-bold text-white mb-3">Documentation</h1>
         <p className="text-zinc-400 text-lg">
-          Learn how to integrate Vuzo API into your applications. One API key for OpenAI, xAI (Grok), and Google models.
+          Learn how to use your SimplerClaw API key. Your <code className="px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-sm text-indigo-400">vz-sk_</code> key gives you access to Moonshot's kimi-k2.5 model, tracked and billed through your SimplerClaw dashboard.
         </p>
       </div>
 
@@ -214,14 +199,13 @@ while (true) {
 
           <Section id="getting-started" title="Getting Started">
             <p className="text-zinc-300 mb-4">
-              Get up and running with Vuzo in minutes. Follow these steps:
+              Your API key is automatically generated when you authenticate through the SimplerClaw installer. No manual sign-up required.
             </p>
             <ol className="list-decimal list-inside space-y-2 text-zinc-300 mb-6">
+              <li>Run the SimplerClaw installer and log in or register</li>
+              <li>Your <code className="px-1.5 py-0.5 bg-zinc-900 border border-zinc-800 rounded text-xs text-indigo-400">vz-sk_</code> key is issued automatically and injected into OpenClaw</li>
               <li>
-                Create an account by <Link to="/register" className="text-indigo-400 hover:text-indigo-300">signing up</Link>
-              </li>
-              <li>
-                Generate an API key from the <Link to="/api-keys" className="text-indigo-400 hover:text-indigo-300">API Keys</Link> page
+                View or manage your keys on the <Link to="/api-keys" className="text-indigo-400 hover:text-indigo-300">API Keys</Link> page
               </li>
               <li>Make your first request using the examples below</li>
             </ol>
@@ -272,7 +256,7 @@ while (true) {
                   <tr className="border-b border-zinc-800/50">
                     <td className="px-4 py-3 font-mono text-xs text-indigo-400">model</td>
                     <td className="px-4 py-3">string</td>
-                    <td className="px-4 py-3">Model ID (e.g. "gpt-4o-mini")</td>
+                    <td className="px-4 py-3">Model ID (e.g. "kimi-k2.5")</td>
                   </tr>
                   <tr className="border-b border-zinc-800/50">
                     <td className="px-4 py-3 font-mono text-xs text-indigo-400">messages</td>
@@ -310,20 +294,23 @@ while (true) {
 
           <Section id="models" title="Available Models">
             <p className="text-zinc-300 mb-4">
-              Vuzo supports models from OpenAI, xAI (Grok), and Google. Switch between providers by changing the <code className="px-2 py-1 bg-zinc-900 border border-zinc-800 rounded text-sm">model</code> parameter.
+              Your SimplerClaw key gives you access to Moonshot's <strong className="text-white">kimi-k2.5</strong> model. All requests are proxied through our infrastructure — no separate provider account needed.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <ModelCard
-                provider="OpenAI"
-                models={['gpt-4o', 'gpt-4o-mini', 'gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano']}
+                provider="Moonshot"
+                models={['kimi-k2.5']}
+                available
               />
               <ModelCard
-                provider="xAI"
-                models={['grok-3', 'grok-3-mini', 'grok-2']}
+                provider="OpenAI"
+                models={['gpt-4o', 'gpt-4o-mini', 'gpt-4.1']}
+                comingSoon
               />
               <ModelCard
                 provider="Google"
-                models={['gemini-2.0-flash', 'gemini-3-flash']}
+                models={['gemini-2.0-flash', 'gemini-2.5-pro']}
+                comingSoon
               />
             </div>
             <Link
@@ -444,13 +431,9 @@ while (true) {
 
 client = Vuzo("vz-sk_your_key_here")
 
-# Simple chat
-response = client.chat.complete("gpt-4o-mini", "Hello!")
+# Chat with kimi-k2.5
+response = client.chat.complete("kimi-k2.5", "Hello!")
 print(response)
-
-# Works with all providers - just change the model!
-response = client.chat.complete("gemini-2.0-flash", "Hello!")
-response = client.chat.complete("grok-3-mini", "Hello!")
 
 # Check balance
 balance = client.billing.get_balance()
@@ -496,95 +479,57 @@ print(f"Balance: \${balance}")`}
 
             <h4 className="text-white font-semibold mb-3 mt-8">Alternative: OpenAI SDK</h4>
             <p className="text-zinc-300 mb-4">
-              Vuzo is also fully compatible with the official OpenAI SDK. Just change the base URL:
+              The SimplerClaw API is OpenAI-compatible. You can use the official OpenAI SDK with your <code className="px-1.5 py-0.5 bg-zinc-900 border border-zinc-800 rounded text-xs text-indigo-400">vz-sk_</code> key by pointing it at our endpoint:
             </p>
-            <div className="p-4 bg-blue-950/30 border border-blue-900/50 rounded-lg mb-6">
-              <div className="flex gap-2">
-                <svg className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <div>
-                  <p className="text-blue-200 font-medium text-sm">One SDK for All Providers</p>
-                  <p className="text-blue-300/80 text-sm mt-1">
-                    The OpenAI SDK works for <strong>all models</strong> including xAI (Grok) and Google (Gemini). 
-                    You don't need provider-specific SDKs. Just change the <code className="px-1.5 py-0.5 bg-blue-900/50 rounded text-xs">model</code> parameter.
-                  </p>
-                </div>
-              </div>
-            </div>
             <div className="space-y-4 mb-6">
               <div>
                 <h4 className="text-white font-semibold mb-2">Python</h4>
-                <CodeBlock
-                  language="bash"
-                  code="pip install openai"
-                />
+                <CodeBlock language="bash" code="pip install openai" />
               </div>
               <div>
                 <h4 className="text-white font-semibold mb-2">Node.js</h4>
-                <CodeBlock
-                  language="bash"
-                  code="npm install openai"
-                />
+                <CodeBlock language="bash" code="npm install openai" />
               </div>
             </div>
-            <div className="mb-6">
-              <h4 className="text-white font-semibold mb-3">Switch Between Providers</h4>
-              <CodeBlock
-                language="python"
-                code={`from openai import OpenAI
+            <CodeBlock
+              language="python"
+              code={`from openai import OpenAI
 
 client = OpenAI(
     api_key="vz-sk_your_key_here",
     base_url="${API_BASE}"
 )
 
-# Use OpenAI
 response = client.chat.completions.create(
-    model="gpt-4o-mini",
+    model="kimi-k2.5",
     messages=[{"role": "user", "content": "Hello!"}]
 )
-
-# Use xAI (Grok) - same SDK!
-response = client.chat.completions.create(
-    model="grok-3-mini",
-    messages=[{"role": "user", "content": "Hello!"}]
-)
-
-# Use Google (Gemini) - same SDK!
-response = client.chat.completions.create(
-    model="gemini-2.0-flash",
-    messages=[{"role": "user", "content": "Hello!"}]
-)`}
-              />
-            </div>
-            <div className="p-4 bg-indigo-950/30 border border-indigo-900/50 rounded-lg">
-              <div className="flex gap-2">
-                <svg className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                </svg>
-                <div>
-                  <p className="text-indigo-200 font-medium text-sm">Test Script Available</p>
-                  <p className="text-indigo-300/80 text-sm mt-1">
-                    Download <code className="px-1.5 py-0.5 bg-indigo-900/50 rounded text-xs">test_key.py</code> from our GitHub repo to quickly test your API key across all providers.
-                  </p>
-                </div>
-              </div>
-            </div>
+print(response.choices[0].message.content)`}
+            />
           </Section>
 
           <Section id="openclaw" title="OpenClaw Integration">
             <div className="flex items-center gap-3 mb-4">
               <span className="text-4xl" role="img" aria-label="lobster">🦞</span>
               <p className="text-zinc-300">
-                <a href="https://openclaw.ai" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 font-medium">OpenClaw</a> is an open-source personal AI agent that supports a custom OpenAI base URL.
-                Point it at Vuzo and all your OpenClaw sessions are billed through your Vuzo credits — no separate provider keys needed.
+                <a href="https://openclaw.ai" target="_blank" rel="noopener noreferrer" className="text-indigo-400 hover:text-indigo-300 font-medium">OpenClaw</a> is the AI agent this dashboard is built for. The SimplerClaw installer automatically configures OpenClaw to use your <code className="px-1.5 py-0.5 bg-zinc-800 rounded text-xs text-indigo-400">vz-sk_</code> key — no manual setup needed.
               </p>
             </div>
 
-            <h4 className="text-white font-semibold mb-3">Setup</h4>
+            <div className="mb-4 p-3 bg-amber-950/30 border border-amber-900/50 rounded-lg">
+              <div className="flex gap-2">
+                <svg className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <p className="text-amber-300/90 text-sm">
+                  <strong className="text-amber-200">SimplerClaw keys are currently for use within OpenClaw only.</strong> Direct API access outside of the SimplerClaw ecosystem is not yet supported.
+                </p>
+              </div>
+            </div>
+
+            <h4 className="text-white font-semibold mb-3">How It Works</h4>
             <p className="text-zinc-300 mb-3">
-              OpenClaw uses the OpenAI SDK internally. Set these two environment variables and it routes all requests through Vuzo automatically:
+              The installer sets two environment variables in your OpenClaw config. OpenClaw routes all AI requests through SimplerClaw, and usage is billed to your credits automatically.
             </p>
             <div className="mb-3 p-3 bg-emerald-950/30 border border-emerald-900/50 rounded-lg">
               <div className="flex gap-2">
@@ -592,55 +537,27 @@ response = client.chat.completions.create(
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <p className="text-emerald-300/90 text-sm">
-                  <strong className="text-emerald-200">No OpenAI account needed.</strong> The variable is named <code className="px-1.5 py-0.5 bg-emerald-900/50 rounded text-xs">OPENAI_API_KEY</code> because that's what OpenClaw's SDK looks for — but you put your <strong className="text-emerald-200">Vuzo key</strong> (<code className="px-1.5 py-0.5 bg-emerald-900/50 rounded text-xs">vz-sk_...</code>) in it. Vuzo handles everything from there.
+                  <strong className="text-emerald-200">No separate AI provider account needed.</strong> The variable is named <code className="px-1.5 py-0.5 bg-emerald-900/50 rounded text-xs">OPENAI_API_KEY</code> because that's what OpenClaw's SDK looks for — but your <strong className="text-emerald-200">SimplerClaw key</strong> (<code className="px-1.5 py-0.5 bg-emerald-900/50 rounded text-xs">vz-sk_...</code>) goes in there. SimplerClaw handles everything from there.
                 </p>
               </div>
             </div>
             <CodeBlock
               language="bash"
-              code={`OPENAI_API_KEY="vz-sk_your_key_here"   # your Vuzo key, not an OpenAI key
-OPENAI_BASE_URL="${API_BASE}"`}
+              code={`OPENAI_API_KEY="vz-sk_your_key_here"   # your SimplerClaw key
+OPENAI_BASE_URL="${API_BASE}"           # set automatically by the installer`}
             />
 
-            <h4 className="text-white font-semibold mt-6 mb-3">Model Compatibility</h4>
-            <div className="space-y-3 mb-6">
-              <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center">
-                    <svg className="w-3 h-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </span>
-                  <div>
-                    <p className="text-white font-medium text-sm">OpenAI models — fully compatible</p>
-                    <p className="text-zinc-400 text-sm mt-0.5">gpt-4o, gpt-4o-mini, gpt-4.1, gpt-4.1-mini, gpt-4.1-nano</p>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center">
-                    <svg className="w-3 h-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </span>
-                  <div>
-                    <p className="text-white font-medium text-sm">xAI (Grok) models — fully compatible</p>
-                    <p className="text-zinc-400 text-sm mt-0.5">grok-3, grok-3-mini, grok-2</p>
-                  </div>
-                </div>
-              </div>
-              <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center">
-                    <svg className="w-3 h-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </span>
-                  <div>
-                    <p className="text-white font-medium text-sm">Google (Gemini) models — fully compatible</p>
-                    <p className="text-zinc-400 text-sm mt-0.5">gemini-2.0-flash, gemini-3-flash</p>
-                  </div>
+            <h4 className="text-white font-semibold mt-6 mb-3">Available Model</h4>
+            <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 mb-4">
+              <div className="flex items-start gap-3">
+                <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center">
+                  <svg className="w-3 h-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                  </svg>
+                </span>
+                <div>
+                  <p className="text-white font-medium text-sm">Moonshot — kimi-k2.5</p>
+                  <p className="text-zinc-400 text-sm mt-0.5">The model powering all SimplerClaw sessions.</p>
                 </div>
               </div>
             </div>
@@ -648,10 +565,10 @@ OPENAI_BASE_URL="${API_BASE}"`}
             <div className="p-4 bg-indigo-950/30 border border-indigo-900/50 rounded-lg">
               <div className="flex gap-2">
                 <svg className="w-5 h-5 text-indigo-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                 </svg>
                 <p className="text-indigo-300/90 text-sm">
-                  This same two-variable trick works with <strong className="text-indigo-200">any</strong> OpenAI-SDK-based tool — LangChain, LlamaIndex, Cursor, and more.
+                  <strong className="text-indigo-200">More models coming soon.</strong> We're working on expanding the model lineup available through your SimplerClaw key.
                 </p>
               </div>
             </div>
@@ -663,7 +580,7 @@ OPENAI_BASE_URL="${API_BASE}"`}
 }
 
 function ModelPlayground() {
-  const [model, setModel] = useState('gpt-4o-mini')
+  const [model, setModel] = useState('kimi-k2.5')
   const [prompt, setPrompt] = useState('Hello! What can you do?')
   const [response, setResponse] = useState('')
   const [usage, setUsage] = useState<{ prompt: number; completion: number; total: number } | null>(null)
@@ -901,13 +818,20 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
   )
 }
 
-function ModelCard({ provider, models }: { provider: string; models: string[] }) {
+function ModelCard({ provider, models, comingSoon }: { provider: string; models: string[]; available?: boolean; comingSoon?: boolean }) {
   return (
-    <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-      <h4 className="text-white font-semibold mb-3">{provider}</h4>
+    <div className={`bg-zinc-900 border rounded-lg p-4 ${comingSoon ? 'border-zinc-800/50 opacity-50' : 'border-zinc-800'}`}>
+      <div className="flex items-center justify-between mb-3">
+        <h4 className={`font-semibold text-sm ${comingSoon ? 'text-zinc-500' : 'text-white'}`}>{provider}</h4>
+        {comingSoon && (
+          <span className="px-2 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-[10px] text-zinc-500 font-medium">
+            Coming soon
+          </span>
+        )}
+      </div>
       <ul className="space-y-1.5">
         {models.map((model) => (
-          <li key={model} className="text-xs font-mono text-zinc-400">
+          <li key={model} className={`text-xs font-mono ${comingSoon ? 'text-zinc-600' : 'text-zinc-400'}`}>
             {model}
           </li>
         ))}
