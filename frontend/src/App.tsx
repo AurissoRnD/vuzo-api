@@ -8,12 +8,16 @@ import Usage from './pages/Usage'
 import Billing from './pages/Billing'
 import Models from './pages/Models'
 import Docs from './pages/Docs'
+import Admin from './pages/Admin'
 
 export default function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
+          {/* Admin portal — standalone, manages its own auth */}
+          <Route path="/admin" element={<Admin />} />
+
           <Route
             element={
               <ProtectedRoute>
