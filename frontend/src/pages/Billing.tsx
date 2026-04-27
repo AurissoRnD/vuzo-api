@@ -17,17 +17,21 @@ interface CheckoutResponse {
   checkout_url: string
 }
 
-const PRESET_TIERS = [
-  { label: '$10', tier: '10' },
-  { label: '$30', tier: '30' },
-  { label: '$50', tier: '50' },
+const CREDIT_AMOUNTS = [
+  { label: '$10',  amount: 10,  note: null },
+  { label: '$25',  amount: 25,  note: null },
+  { label: '$50',  amount: 50,  note: null },
+  { label: '$100', amount: 100, note: 'Most popular' },
+  { label: '$150', amount: 150, note: null },
+  { label: '$200', amount: 200, note: null },
+  { label: '$300', amount: 300, note: 'Best value' },
 ]
 
 export default function Billing() {
   const [balance, setBalance] = useState<number>(0)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [loading, setLoading] = useState(true)
-  const [customAmount, setCustomAmount] = useState('')
+  const [selectedAmount, setSelectedAmount] = useState<number>(100)
   const [checkingOut, setCheckingOut] = useState(false)
 
   const loadData = async () => {
@@ -47,29 +51,10 @@ export default function Billing() {
 
   useEffect(() => { loadData() }, [])
 
-  const handleTierCheckout = async (tier: string) => {
+  const handleCheckout = async () => {
     setCheckingOut(true)
     try {
-      const result = await api.post<CheckoutResponse>('/billing/checkout', { tier })
-      window.open(result.checkout_url, '_blank')
-      setTimeout(() => loadData(), 5000)
-      setTimeout(() => loadData(), 15000)
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Checkout failed')
-    } finally {
-      setCheckingOut(false)
-    }
-  }
-
-  const handleCustomCheckout = async () => {
-    const amount = parseFloat(customAmount)
-    if (isNaN(amount) || amount < 10) {
-      alert('Minimum top-up is $10.')
-      return
-    }
-    setCheckingOut(true)
-    try {
-      const result = await api.post<CheckoutResponse>('/billing/checkout', { amount })
+      const result = await api.post<CheckoutResponse>('/billing/checkout', { amount: selectedAmount })
       window.open(result.checkout_url, '_blank')
       setTimeout(() => loadData(), 5000)
       setTimeout(() => loadData(), 15000)
@@ -94,44 +79,41 @@ export default function Billing() {
 
       {/* Add Credits */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 mb-6">
-        <h3 className="text-lg font-semibold mb-4">Add Credits</h3>
+        <h3 className="text-lg font-semibold mb-1">Add Credits</h3>
+        <p className="text-sm text-zinc-400 mb-5">Select an amount to top up your balance.</p>
 
-        {/* Preset tiers */}
-        <div className="flex flex-wrap gap-3">
-          {PRESET_TIERS.map((tier) => (
-            <button
-              key={tier.label}
-              onClick={() => handleTierCheckout(tier.tier)}
-              disabled={checkingOut}
-              className="px-6 py-3 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 border border-zinc-700 rounded-lg text-white font-medium transition-colors"
-            >
-              {checkingOut ? '...' : tier.label}
-            </button>
-          ))}
+        <div className="grid grid-cols-4 gap-3 mb-6">
+          {CREDIT_AMOUNTS.map(({ label, amount, note }) => {
+            const isSelected = selectedAmount === amount
+            return (
+              <button
+                key={amount}
+                onClick={() => setSelectedAmount(amount)}
+                className={`relative flex flex-col items-center justify-center py-4 rounded-xl border font-medium transition-all ${
+                  isSelected
+                    ? 'bg-indigo-600/20 border-indigo-500 text-white'
+                    : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-zinc-500 hover:text-white'
+                }`}
+              >
+                {note && (
+                  <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-indigo-600 text-white text-[10px] font-semibold rounded-full whitespace-nowrap">
+                    {note}
+                  </span>
+                )}
+                <span className="text-lg">{label}</span>
+              </button>
+            )
+          })}
         </div>
-        {/* Custom amount */}
-        <div className="flex gap-3 mt-4">
-          <div className="relative flex-1 max-w-xs">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500">$</span>
-            <input
-              type="number"
-              value={customAmount}
-              onChange={(e) => setCustomAmount(e.target.value)}
-              placeholder="Min $10"
-              min="10"
-              step="1"
-              className="w-full pl-7 pr-3 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            />
-          </div>
-          <button
-            onClick={handleCustomCheckout}
-            disabled={checkingOut || !customAmount}
-            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-medium rounded-lg transition-colors"
-          >
-            {checkingOut ? '...' : 'Pay'}
-          </button>
-        </div>
-        <p className="text-xs text-zinc-500 mt-3">Payments are processed securely via Polar.</p>
+
+        <button
+          onClick={handleCheckout}
+          disabled={checkingOut}
+          className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-semibold rounded-xl transition-colors"
+        >
+          {checkingOut ? 'Redirecting...' : `Pay $${selectedAmount}`}
+        </button>
+        <p className="text-xs text-zinc-500 mt-3 text-center">Payments are processed securely via Polar.</p>
       </div>
 
       {/* Transaction History */}
