@@ -13,9 +13,11 @@ interface Transaction {
   created_at: string
 }
 
-interface CheckoutResponse {
-  checkout_url: string
+interface SctCheckoutResponse {
+  url: string
 }
+
+const TEST_MODE_STORAGE_KEY = 'sct_test_mode_token'
 
 const CREDIT_AMOUNTS = [
   { label: '$10',  amount: 10,  note: null },
@@ -33,6 +35,14 @@ export default function Billing() {
   const [loading, setLoading] = useState(true)
   const [selectedAmount, setSelectedAmount] = useState<number>(100)
   const [checkingOut, setCheckingOut] = useState(false)
+  const [testModeToken, setTestModeToken] = useState<string | null>(
+    sessionStorage.getItem(TEST_MODE_STORAGE_KEY)
+  )
+
+  const disableTestMode = () => {
+    sessionStorage.removeItem(TEST_MODE_STORAGE_KEY)
+    setTestModeToken(null)
+  }
 
   const loadData = async () => {
     try {
@@ -54,13 +64,15 @@ export default function Billing() {
   const handleCheckout = async () => {
     setCheckingOut(true)
     try {
-      const result = await api.post<CheckoutResponse>('/billing/checkout', { amount: selectedAmount })
-      window.open(result.checkout_url, '_blank')
-      setTimeout(() => loadData(), 5000)
-      setTimeout(() => loadData(), 15000)
+      const headers = testModeToken ? { 'x-mode': testModeToken } : undefined
+      const result = await api.post<SctCheckoutResponse>(
+        '/billing/checkout-sct',
+        { amount: selectedAmount },
+        headers,
+      )
+      window.location.href = result.url
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Checkout failed')
-    } finally {
       setCheckingOut(false)
     }
   }
@@ -70,6 +82,20 @@ export default function Billing() {
   return (
     <div>
       <h2 className="text-2xl font-semibold mb-6">Billing</h2>
+
+      {testModeToken && (
+        <div className="mb-4 flex items-center justify-between bg-amber-500/10 border border-amber-500/30 text-amber-300 rounded-lg px-4 py-2.5 text-sm">
+          <span>
+            Test mode is <span className="font-semibold">ON</span> — CardTransaction will accept test cards.
+          </span>
+          <button
+            onClick={disableTestMode}
+            className="text-amber-300 hover:text-amber-200 underline underline-offset-2 text-xs"
+          >
+            disable
+          </button>
+        </div>
+      )}
 
       {/* Balance */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 mb-6">
@@ -113,7 +139,7 @@ export default function Billing() {
         >
           {checkingOut ? 'Redirecting...' : `Pay $${selectedAmount}`}
         </button>
-        <p className="text-xs text-zinc-500 mt-3 text-center">Payments are processed securely via Polar.</p>
+        <p className="text-xs text-zinc-500 mt-3 text-center">Payments are processed securely via CardTransaction.</p>
       </div>
 
       {/* Transaction History */}
