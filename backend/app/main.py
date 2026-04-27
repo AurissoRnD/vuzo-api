@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from app.routers import proxy, api_keys, usage, billing, models_list, auth, polar, setup, admin, cardtransaction
+from app.routers import proxy, api_keys, usage, billing, models_list, auth, polar, setup, admin, cardtransaction, ws
 from app.models.database import init_supabase, close_http_client
 from app.middleware.rate_limiter import RateLimiterMiddleware
 from app.config import get_settings
@@ -47,6 +47,7 @@ app.include_router(cardtransaction.router, prefix="/v1", tags=["Payments"])
 app.include_router(models_list.router, prefix="/v1", tags=["Models"])
 app.include_router(setup.router, prefix="/v1", tags=["Setup"])
 app.include_router(admin.router, prefix="/v1", tags=["Admin"])
+app.include_router(ws.router, prefix="/v1", tags=["WebSocket"])
 
 
 @app.get("/health")

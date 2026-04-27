@@ -9,6 +9,7 @@ from app.services.pricing_service import get_model_pricing, get_provider_api_key
 from app.services.billing_service import check_sufficient_balance, deduct_credits
 from app.services.usage_service import log_usage
 from app.services.providers.moonshot import MoonshotProvider
+from app.services.ws_manager import manager as ws_manager
 from app.utils.pricing import calculate_cost
 
 router = APIRouter()
@@ -16,12 +17,69 @@ router = APIRouter()
 _moonshot = MoonshotProvider()
 _providers = [_moonshot]
 
+_LOW_BALANCE_THRESHOLD = 1.00   # USD
+_LOW_TOKEN_PCT = 0.90           # 90% of token limit
+
 
 def _get_provider(model: str):
     for p in _providers:
         if p.model_supported(model):
             return p
     return None
+
+
+async def _broadcast_usage(
+    auth: AuthContext,
+    model: str,
+    input_tokens: int,
+    output_tokens: int,
+    vuzo_cost: float,
+    new_balance: float,
+):
+    """Push usage event + threshold alerts to the user's WebSocket if connected."""
+    if not ws_manager.is_connected(auth.user_id):
+        return
+
+    total_tokens = input_tokens + output_tokens
+
+    await ws_manager.send(auth.user_id, {
+        "type": "usage",
+        "model": model,
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "total_tokens": total_tokens,
+        "cost": round(vuzo_cost, 6),
+        "balance": round(new_balance, 6),
+    })
+
+    # Token limit alerts
+    if auth.token_limit:
+        new_tokens_used = auth.tokens_used + total_tokens
+        pct = new_tokens_used / auth.token_limit
+
+        if new_tokens_used >= auth.token_limit:
+            await ws_manager.send(auth.user_id, {
+                "type": "out_of_tokens",
+                "tokens_used": new_tokens_used,
+                "token_limit": auth.token_limit,
+                "message": "Token limit reached. Top up to continue.",
+            })
+        elif pct >= _LOW_TOKEN_PCT and auth.tokens_used / auth.token_limit < _LOW_TOKEN_PCT:
+            await ws_manager.send(auth.user_id, {
+                "type": "low_tokens",
+                "tokens_used": new_tokens_used,
+                "token_limit": auth.token_limit,
+                "percent_used": round(pct * 100, 1),
+                "message": f"You have used {round(pct * 100, 1)}% of your token limit.",
+            })
+
+    # Balance alerts
+    if new_balance < _LOW_BALANCE_THRESHOLD:
+        await ws_manager.send(auth.user_id, {
+            "type": "low_balance",
+            "balance": round(new_balance, 6),
+            "message": f"Your balance is below ${_LOW_BALANCE_THRESHOLD:.2f}. Top up to avoid interruption.",
+        })
 
 
 @router.post("/chat/completions")
@@ -64,7 +122,7 @@ async def chat_completions(
         vuzo_markup_percent=float(pricing["vuzo_markup_percent"]),
     )
 
-    deduct_credits(
+    new_balance = deduct_credits(
         auth.user_id,
         vuzo_cost,
         f"{request.model}: {result.input_tokens}in + {result.output_tokens}out tokens",
@@ -80,6 +138,15 @@ async def chat_completions(
         provider_cost=provider_cost,
         vuzo_cost=vuzo_cost,
         response_time_ms=elapsed_ms,
+    )
+
+    await _broadcast_usage(
+        auth=auth,
+        model=request.model,
+        input_tokens=result.input_tokens,
+        output_tokens=result.output_tokens,
+        vuzo_cost=vuzo_cost,
+        new_balance=new_balance,
     )
 
     response_data = result.provider_response
@@ -113,7 +180,7 @@ async def _stream_response(request, provider, master_key, pricing, auth: AuthCon
             vuzo_markup_percent=float(pricing["vuzo_markup_percent"]),
         )
 
-        deduct_credits(
+        new_balance = deduct_credits(
             auth.user_id,
             vuzo_cost,
             f"{request.model}: {final_usage.input_tokens}in + {final_usage.output_tokens}out tokens (stream)",
@@ -129,4 +196,13 @@ async def _stream_response(request, provider, master_key, pricing, auth: AuthCon
             provider_cost=provider_cost,
             vuzo_cost=vuzo_cost,
             response_time_ms=elapsed_ms,
+        )
+
+        await _broadcast_usage(
+            auth=auth,
+            model=request.model,
+            input_tokens=final_usage.input_tokens,
+            output_tokens=final_usage.output_tokens,
+            vuzo_cost=vuzo_cost,
+            new_balance=new_balance,
         )

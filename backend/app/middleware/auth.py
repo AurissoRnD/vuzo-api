@@ -61,6 +61,7 @@ async def validate_api_key(
     ).execute()
 
     token_limit = matched_key.get("token_limit")
+    tokens_used = 0
     if token_limit is not None:
         usage = (
             sb.table("usage_logs")
@@ -80,4 +81,5 @@ async def validate_api_key(
         api_key_id=matched_key["id"],
         rate_limit_rpm=matched_key["rate_limit_rpm"],
         token_limit=token_limit,
+        tokens_used=tokens_used,
     )
