@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
-from app.routers import proxy, api_keys, usage, billing, models_list, auth, polar, setup, admin, cardtransaction, ws
+from app.routers import proxy, api_keys, usage, billing, models_list, auth, setup, admin, cardtransaction, ws
 from app.models.database import init_supabase, close_http_client
 from app.middleware.rate_limiter import RateLimiterMiddleware
 from app.config import get_settings
@@ -42,7 +42,6 @@ app.include_router(auth.router, prefix="/v1/auth", tags=["Auth"])
 app.include_router(api_keys.router, prefix="/v1/api-keys", tags=["API Keys"])
 app.include_router(usage.router, prefix="/v1/usage", tags=["Usage"])
 app.include_router(billing.router, prefix="/v1/billing", tags=["Billing"])
-app.include_router(polar.router, prefix="/v1", tags=["Payments"])
 app.include_router(cardtransaction.router, prefix="/v1", tags=["Payments"])
 app.include_router(models_list.router, prefix="/v1", tags=["Models"])
 app.include_router(setup.router, prefix="/v1", tags=["Setup"])

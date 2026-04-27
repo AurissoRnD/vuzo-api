@@ -20,18 +20,6 @@ services:
         sync: false
       - key: MOONSHOT_API_KEY
         sync: false
-      - key: POLAR_ACCESS_TOKEN
-        sync: false
-      - key: POLAR_WEBHOOK_SECRET
-        sync: false
-      - key: POLAR_PRODUCT_10
-        sync: false
-      - key: POLAR_PRODUCT_30
-        sync: false
-      - key: POLAR_PRODUCT_50
-        sync: false
-      - key: POLAR_PRODUCT_CUSTOM
-        sync: false
       - key: FRONTEND_URL
         sync: false
       - key: APP_ENV

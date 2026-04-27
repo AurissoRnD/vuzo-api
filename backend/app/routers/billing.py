@@ -27,13 +27,13 @@ async def topup_credits(
 ):
     """
     Add credits directly to the user's balance.
-    Disabled in production — use the Polar checkout flow (POST /v1/billing/checkout) instead.
+    Disabled in production — use the CardTransaction checkout flow instead.
     Only available in development/testing environments.
     """
     if get_settings().app_env == "production":
         raise HTTPException(
             status_code=403,
-            detail="Direct top-up is disabled in production. Use the Polar checkout flow instead.",
+            detail="Direct top-up is disabled in production. Use the CardTransaction checkout flow instead.",
         )
     new_balance, tx_id = add_credits(user_id, body.amount)
     return TopUpResponse(

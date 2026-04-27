@@ -12,16 +12,6 @@ class Settings(BaseSettings):
     # Provider API keys
     moonshot_api_key: str = ""
 
-    # Polar payment integration
-    polar_access_token: str = ""
-    polar_webhook_secret: str = ""
-    polar_sandbox: bool = False  # set to true to use sandbox-api.polar.sh instead of api.polar.sh
-    # Polar product IDs — set these in .env, never exposed to the frontend
-    polar_product_10: str = ""
-    polar_product_30: str = ""
-    polar_product_50: str = ""
-    polar_product_custom: str = ""  # "Pay what you want" product for custom amounts
-
     # CardTransaction payment integration
     sct_api_url: str = "https://secure.cardtransaction.com"
     sct_project_code: str = ""
