@@ -285,7 +285,7 @@ for day in daily:
           </Section>
 
           <Section id="billing" title="billing">
-            <p className="text-zinc-300 mb-4">Accessed via <code className="px-1.5 py-0.5 bg-zinc-900 border border-zinc-800 rounded text-xs">client.billing</code>. Credits are topped up via Polar — use the <strong className="text-white">Billing</strong> page in your dashboard to add funds.</p>
+            <p className="text-zinc-300 mb-4">Accessed via <code className="px-1.5 py-0.5 bg-zinc-900 border border-zinc-800 rounded text-xs">client.billing</code>. Credits are topped up via CardTransaction — use the <strong className="text-white">Billing</strong> page in your dashboard to add funds.</p>
 
             <MethodBlock
               name="billing.get_balance()"
