@@ -36,22 +36,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       let resolvedSession = null
 
-      if (accessToken && refreshToken) {
-        // Both tokens present — set session directly (no network call needed)
-        const { data } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        })
-        resolvedSession = data.session
-      } else if (refreshToken) {
-        // Only refresh_token present — new flow from SimplerClaw keychain.
-        // Exchanges the refresh_token for a fresh session via Supabase.
-        const { data } = await supabase.auth.refreshSession({ refresh_token: refreshToken })
-        resolvedSession = data.session
-      } else {
-        // No URL tokens — use existing session from localStorage
-        const { data } = await supabase.auth.getSession()
-        resolvedSession = data.session
+      try {
+        if (accessToken && refreshToken) {
+          // Both tokens present — set session directly (no network call needed)
+          const { data } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          })
+          resolvedSession = data.session
+        } else if (refreshToken) {
+          // Only refresh_token present — new flow from SimplerClaw keychain.
+          // Exchanges the refresh_token for a fresh session via Supabase.
+          const { data } = await supabase.auth.refreshSession({ refresh_token: refreshToken })
+          resolvedSession = data.session
+        } else {
+          // No URL tokens — use existing session from localStorage
+          const { data } = await supabase.auth.getSession()
+          resolvedSession = data.session
+        }
+      } catch {
+        // Any Supabase error (network down, bad token, etc.) — treat as no session
+        resolvedSession = null
       }
 
       // Clean tokens from URL bar regardless of which path was taken
