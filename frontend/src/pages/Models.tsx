@@ -30,10 +30,18 @@ export default function Models() {
   }, {})
 
   const providerLabels: Record<string, string> = {
+    moonshot: 'Moonshot',
     openai: 'OpenAI',
     anthropic: 'Anthropic',
     google: 'Google',
+    xai: 'xAI',
   }
+
+  const comingSoonProviders = [
+    { provider: 'OpenAI', models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4.1'] },
+    { provider: 'Google', models: ['gemini-2.0-flash', 'gemini-2.5-pro'] },
+    { provider: 'Anthropic', models: ['claude-sonnet-4', 'claude-haiku-4'] },
+  ]
 
   return (
     <div>
@@ -50,10 +58,9 @@ export default function Models() {
             </svg>
           </div>
           <div className="flex-1">
-            <h3 className="text-xl font-semibold text-white mb-2">New to Vuzo?</h3>
+            <h3 className="text-xl font-semibold text-white mb-2">New to SimplerClaw?</h3>
             <p className="text-zinc-300 text-sm mb-4">
-              Learn how to integrate Vuzo into your application with our comprehensive documentation. 
-              Get started with code examples in Python, JavaScript, and more.
+              Learn how to use your SimplerClaw key with OpenClaw and get started with code examples.
             </p>
             <Link
               to="/docs"
@@ -92,6 +99,37 @@ export default function Models() {
                     <td className="px-4 py-3 text-right text-indigo-400 font-medium">
                       ${m.vuzo_output_price_per_million.toFixed(4)}
                     </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ))}
+
+      {comingSoonProviders.map(({ provider, models }) => (
+        <div key={provider} className="mb-6 opacity-50">
+          <div className="flex items-center gap-3 mb-3">
+            <h3 className="text-lg font-semibold text-zinc-500">{provider}</h3>
+            <span className="px-2 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-[11px] text-zinc-500 font-medium">
+              Coming soon
+            </span>
+          </div>
+          <div className="bg-zinc-900 border border-zinc-800/50 rounded-xl overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-zinc-800/50 text-zinc-600">
+                  <th className="text-left px-4 py-3 font-medium">Model</th>
+                  <th className="text-right px-4 py-3 font-medium">Input Price</th>
+                  <th className="text-right px-4 py-3 font-medium">Output Price</th>
+                </tr>
+              </thead>
+              <tbody>
+                {models.map((name) => (
+                  <tr key={name} className="border-b border-zinc-800/30">
+                    <td className="px-4 py-3 font-mono text-zinc-600 text-xs">{name}</td>
+                    <td className="px-4 py-3 text-right text-zinc-700 font-medium">—</td>
+                    <td className="px-4 py-3 text-right text-zinc-700 font-medium">—</td>
                   </tr>
                 ))}
               </tbody>

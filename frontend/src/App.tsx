@@ -8,7 +8,6 @@ import Usage from './pages/Usage'
 import Billing from './pages/Billing'
 import Models from './pages/Models'
 import Docs from './pages/Docs'
-import SdkDocs from './pages/SdkDocs'
 
 export default function App() {
   return (
@@ -28,7 +27,6 @@ export default function App() {
             <Route path="/billing" element={<Billing />} />
             <Route path="/models" element={<Models />} />
             <Route path="/docs" element={<Docs />} />
-            <Route path="/sdk-docs" element={<SdkDocs />} />
           </Route>
         </Routes>
       </BrowserRouter>
