@@ -12,7 +12,7 @@ from app.services.providers.base import BaseProvider
 MOONSHOT_BASE_URL = "https://api.moonshot.ai/v1"
 
 MOONSHOT_MODELS = {
-    "kimi-k2.5",
+    "kimi-k2.6",
 }
 
 

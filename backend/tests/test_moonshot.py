@@ -15,7 +15,7 @@ from app.models.schemas import ChatCompletionRequest, ChatMessage
 
 def _request(stream: bool = False) -> ChatCompletionRequest:
     return ChatCompletionRequest(
-        model="kimi-k2.5",
+        model="kimi-k2.6",
         messages=[ChatMessage(role="user", content="ping")],
         stream=stream,
         max_tokens=8,
@@ -49,7 +49,7 @@ def _mock_http_client(status: int, body: dict | str) -> MagicMock:
 
 class TestMoonshotModelSupport:
     def test_kimi_k25_supported(self):
-        assert MoonshotProvider().model_supported("kimi-k2.5")
+        assert MoonshotProvider().model_supported("kimi-k2.6")
 
     def test_unknown_model_not_supported(self):
         assert not MoonshotProvider().model_supported("gpt-4o")
@@ -129,13 +129,13 @@ class TestMoonshotBuildPayload:
     def test_required_fields_present(self):
         req = _request()
         payload = MoonshotProvider()._build_payload(req, stream=False)
-        assert payload["model"] == "kimi-k2.5"
+        assert payload["model"] == "kimi-k2.6"
         assert payload["stream"] is False
         assert len(payload["messages"]) == 1
 
     def test_optional_fields_omitted_when_none(self):
         req = ChatCompletionRequest(
-            model="kimi-k2.5",
+            model="kimi-k2.6",
             messages=[ChatMessage(role="user", content="ping")],
         )
         payload = MoonshotProvider()._build_payload(req, stream=False)

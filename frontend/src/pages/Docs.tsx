@@ -16,8 +16,8 @@ from vuzo import Vuzo
 
 client = Vuzo("vz-sk_your_key_here")
 
-# Simple chat with kimi-k2.5
-response = client.chat.complete("kimi-k2.5", "Hello!")
+# Simple chat with kimi-k2.6
+response = client.chat.complete("kimi-k2.6", "Hello!")
 print(response)`,
     },
     {
@@ -31,7 +31,7 @@ client = OpenAI(
 )
 
 response = client.chat.completions.create(
-    model="kimi-k2.5",
+    model="kimi-k2.6",
     messages=[{"role": "user", "content": "Hello!"}]
 )
 
@@ -46,7 +46,7 @@ response = requests.post(
     "${API_BASE}/chat/completions",
     headers={"Authorization": "Bearer vz-sk_your_key_here"},
     json={
-        "model": "kimi-k2.5",
+        "model": "kimi-k2.6",
         "messages": [{"role": "user", "content": "Hello!"}]
     }
 )
@@ -64,7 +64,7 @@ print(data["choices"][0]["message"]["content"])`,
     'Content-Type': 'application/json'
   },
   body: JSON.stringify({
-    model: 'kimi-k2.5',
+    model: 'kimi-k2.6',
     messages: [{role: 'user', content: 'Hello!'}]
   })
 })
@@ -79,7 +79,7 @@ console.log(data.choices[0].message.content)`,
   -H "Authorization: Bearer vz-sk_your_key_here" \\
   -H "Content-Type: application/json" \\
   -d '{
-    "model": "kimi-k2.5",
+    "model": "kimi-k2.6",
     "messages": [{"role": "user", "content": "Hello!"}]
   }'`,
     },
@@ -97,7 +97,7 @@ client = OpenAI(
 )
 
 stream = client.chat.completions.create(
-    model="kimi-k2.5",
+    model="kimi-k2.6",
     messages=[{"role": "user", "content": "Count to 10"}],
     stream=True
 )
@@ -151,7 +151,7 @@ while (true) {
       <div className="mb-10">
         <h1 className="text-4xl font-bold text-white mb-3">Documentation</h1>
         <p className="text-zinc-400 text-lg">
-          Learn how to use your SimplerClaw API key. Your <code className="px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-sm text-indigo-400">vz-sk_</code> key gives you access to Moonshot's kimi-k2.5 model, tracked and billed through your SimplerClaw dashboard.
+          Learn how to use your SimplerClaw API key. Your <code className="px-1.5 py-0.5 bg-zinc-800 border border-zinc-700 rounded text-sm text-indigo-400">vz-sk_</code> key gives you access to Moonshot's kimi-k2.6 model, tracked and billed through your SimplerClaw dashboard.
         </p>
       </div>
 
@@ -231,7 +231,7 @@ while (true) {
                   <tr className="border-b border-zinc-800/50">
                     <td className="px-4 py-3 font-mono text-xs text-indigo-400">model</td>
                     <td className="px-4 py-3">string</td>
-                    <td className="px-4 py-3">Model ID (e.g. "kimi-k2.5")</td>
+                    <td className="px-4 py-3">Model ID (e.g. "kimi-k2.6")</td>
                   </tr>
                   <tr className="border-b border-zinc-800/50">
                     <td className="px-4 py-3 font-mono text-xs text-indigo-400">messages</td>
@@ -269,12 +269,12 @@ while (true) {
 
           <Section id="models" title="Available Models">
             <p className="text-zinc-300 mb-4">
-              Your SimplerClaw key gives you access to Moonshot's <strong className="text-white">kimi-k2.5</strong> model. All requests are proxied through our infrastructure — no separate provider account needed.
+              Your SimplerClaw key gives you access to Moonshot's <strong className="text-white">kimi-k2.6</strong> model. All requests are proxied through our infrastructure — no separate provider account needed.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
               <ModelCard
                 provider="Moonshot"
-                models={['kimi-k2.5']}
+                models={['kimi-k2.6']}
                 available
               />
               <ModelCard
@@ -406,8 +406,8 @@ while (true) {
 
 client = Vuzo("vz-sk_your_key_here")
 
-# Chat with kimi-k2.5
-response = client.chat.complete("kimi-k2.5", "Hello!")
+# Chat with kimi-k2.6
+response = client.chat.complete("kimi-k2.6", "Hello!")
 print(response)
 
 # Check balance
@@ -467,7 +467,7 @@ client = OpenAI(
 )
 
 response = client.chat.completions.create(
-    model="kimi-k2.5",
+    model="kimi-k2.6",
     messages=[{"role": "user", "content": "Hello!"}]
 )
 print(response.choices[0].message.content)`}
@@ -522,7 +522,7 @@ OPENAI_BASE_URL="${API_BASE}"           # set automatically by the installer`}
                   </svg>
                 </span>
                 <div>
-                  <p className="text-white font-medium text-sm">Moonshot — kimi-k2.5</p>
+                  <p className="text-white font-medium text-sm">Moonshot — kimi-k2.6</p>
                   <p className="text-zinc-400 text-sm mt-0.5">The model powering all SimplerClaw sessions.</p>
                 </div>
               </div>

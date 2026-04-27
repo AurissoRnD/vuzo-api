@@ -94,7 +94,7 @@ class TestInstallerRegister:
 
         with patch("app.routers.setup.get_supabase", return_value=sb), \
              patch("app.routers.setup.create_api_key", return_value={"key": "vz-sk_new"}), \
-             patch("app.routers.setup.get_all_models", return_value=[{"model_name": "kimi-k2.5"}]), \
+             patch("app.routers.setup.get_all_models", return_value=[{"model_name": "kimi-k2.6"}]), \
              patch("app.routers.setup.create_client") as mock_create:
 
             mock_create.return_value.auth.sign_up.return_value = auth_resp
@@ -109,7 +109,7 @@ class TestInstallerRegister:
 
         with patch("app.routers.setup.get_supabase", return_value=sb), \
              patch("app.routers.setup.create_api_key", return_value={"key": "vz-sk_new"}), \
-             patch("app.routers.setup.get_all_models", return_value=[{"model_name": "kimi-k2.5"}]), \
+             patch("app.routers.setup.get_all_models", return_value=[{"model_name": "kimi-k2.6"}]), \
              patch("app.routers.setup.create_client") as mock_create:
 
             mock_create.return_value.auth.sign_up.return_value = auth_resp
@@ -136,7 +136,7 @@ class TestInstallerRegister:
 
         with patch("app.routers.setup.get_supabase", return_value=sb), \
              patch("app.routers.setup.create_api_key", return_value={"key": "vz-sk_new"}), \
-             patch("app.routers.setup.get_all_models", return_value=[{"model_name": "kimi-k2.5"}]), \
+             patch("app.routers.setup.get_all_models", return_value=[{"model_name": "kimi-k2.6"}]), \
              patch("app.routers.setup.create_client") as mock_create:
 
             mock_create.return_value.auth.sign_up.return_value = auth_resp
@@ -144,7 +144,7 @@ class TestInstallerRegister:
 
         cfg = resp.json()["openclaw_config"]
         assert cfg["provider_name"] == "vuzo"
-        assert "kimi-k2.5" in cfg["models"]
+        assert "kimi-k2.6" in cfg["models"]
 
 
 class TestInstallerLogin:
@@ -154,7 +154,7 @@ class TestInstallerLogin:
 
         with patch("app.routers.setup.get_supabase", return_value=sb), \
              patch("app.routers.setup.create_api_key", return_value={"key": "vz-sk_rotated"}), \
-             patch("app.routers.setup.get_all_models", return_value=[{"model_name": "kimi-k2.5"}]), \
+             patch("app.routers.setup.get_all_models", return_value=[{"model_name": "kimi-k2.6"}]), \
              patch("app.routers.setup.create_client") as mock_create:
 
             mock_create.return_value.auth.sign_in_with_password.return_value = auth_resp
@@ -178,7 +178,7 @@ class TestInstallerLogin:
 
         with patch("app.routers.setup.get_supabase", return_value=sb), \
              patch("app.routers.setup.create_api_key", return_value={"key": "vz-sk_rotated"}), \
-             patch("app.routers.setup.get_all_models", return_value=[{"model_name": "kimi-k2.5"}]), \
+             patch("app.routers.setup.get_all_models", return_value=[{"model_name": "kimi-k2.6"}]), \
              patch("app.routers.setup.create_client") as mock_create:
 
             mock_create.return_value.auth.sign_in_with_password.return_value = auth_resp
@@ -217,7 +217,7 @@ class TestRotateKey:
         with patch("app.routers.setup.get_supabase", return_value=sb), \
              patch("app.routers.setup.create_client", return_value=mock_auth_client), \
              patch("app.routers.setup.create_api_key", return_value={"key": "vz-sk_rotated"}), \
-             patch("app.routers.setup.get_all_models", return_value=[{"model_name": "kimi-k2.5"}]):
+             patch("app.routers.setup.get_all_models", return_value=[{"model_name": "kimi-k2.6"}]):
 
             resp = TestClient(app).post("/v1/setup/rotate-key", json=ROTATE_BODY)
 
@@ -246,7 +246,7 @@ class TestRotateKey:
         with patch("app.routers.setup.get_supabase", return_value=sb), \
              patch("app.routers.setup.create_client", return_value=mock_auth_client), \
              patch("app.routers.setup.create_api_key", return_value={"key": "vz-sk_rotated"}), \
-             patch("app.routers.setup.get_all_models", return_value=[{"model_name": "kimi-k2.5"}]):
+             patch("app.routers.setup.get_all_models", return_value=[{"model_name": "kimi-k2.6"}]):
 
             resp = TestClient(app).post("/v1/setup/rotate-key", json=ROTATE_BODY)
 

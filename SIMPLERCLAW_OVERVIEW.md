@@ -5,7 +5,7 @@
 
 ## What Is SimplerClaw?
 
-SimplerClaw is an AI infrastructure platform built for users of the OpenClaw AI agent. It acts as a managed gateway between OpenClaw and the underlying AI models — specifically Moonshot's **kimi-k2.5** — so that users never need to manage provider API keys, billing accounts, or token quotas themselves.
+SimplerClaw is an AI infrastructure platform built for users of the OpenClaw AI agent. It acts as a managed gateway between OpenClaw and the underlying AI models — specifically Moonshot's **kimi-k2.6** — so that users never need to manage provider API keys, billing accounts, or token quotas themselves.
 
 From the user's perspective:
 - They install OpenClaw via the SimplerClaw installer wizard
@@ -39,7 +39,7 @@ From the business perspective:
 | Database | Supabase (managed PostgreSQL) |
 | Auth | Supabase Auth (email/password + JWT) |
 | Hosting | Render.com (2 services: API + static dashboard) |
-| AI Provider | Moonshot (`kimi-k2.5`) via REST proxy |
+| AI Provider | Moonshot (`kimi-k2.6`) via REST proxy |
 | Payments | CardTransaction (primary), Polar (secondary) |
 
 ---
@@ -75,7 +75,7 @@ Every user has one or more `vz-sk_` keys. These are:
 When OpenClaw sends a request:
 
 ```
-OpenClaw → vz-sk_ key → SimplerClaw API → Moonshot kimi-k2.5
+OpenClaw → vz-sk_ key → SimplerClaw API → Moonshot kimi-k2.6
 ```
 
 In detail:
@@ -134,7 +134,7 @@ The dashboard at `https://vuzo-api-1.onrender.com` gives users:
 | **API Keys** | All keys with usage, limits, last used time; create/revoke |
 | **Usage** | Per-request log with model, tokens, cost; daily summary |
 | **Billing** | Top-up with card; full transaction history |
-| **Models** | kimi-k2.5 (live) + coming soon: OpenAI, Google, Anthropic |
+| **Models** | kimi-k2.6 (live) + coming soon: OpenAI, Google, Anthropic |
 | **Docs** | Integration guide, code examples (Python, JS, cURL) |
 
 ---
@@ -198,7 +198,7 @@ The admin portal at `https://vuzo-api-1.onrender.com/admin` is accessible only t
 ## Current Status
 
 - Platform is live and taking registrations
-- kimi-k2.5 (Moonshot) is the active model
+- kimi-k2.6 (Moonshot) is the active model
 - CardTransaction payment processing integrated
 - Admin portal operational
 - More models coming soon: OpenAI (gpt-4o, gpt-4.1), Google (Gemini), Anthropic (Claude)

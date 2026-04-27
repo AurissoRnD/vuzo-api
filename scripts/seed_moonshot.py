@@ -1,7 +1,7 @@
 """
 One-time migration script:
 - Disables all existing models in model_pricing
-- Adds kimi-k2.5 (Moonshot provider)
+- Adds kimi-k2.6 (Moonshot provider)
 - Stores encrypted Moonshot API key in provider_keys
 
 Run from the backend/ directory with env vars set:
@@ -20,9 +20,9 @@ MOONSHOT_API_KEY = "sk-UpcPpxfyZkgGKO5Rwe7jtea8ANpHPiDbJleOVL8fPwAU7uyG"
 
 KIMI_MODEL = {
     "provider": "moonshot",
-    "model_name": "kimi-k2.5",
-    "input_price_per_million": 0.14,   # Moonshot pricing — update if needed
-    "output_price_per_million": 0.14,
+    "model_name": "kimi-k2.6",
+    "input_price_per_million": 0.95,   # Moonshot kimi-k2.6 cache miss rate
+    "output_price_per_million": 4.00,  # Moonshot kimi-k2.6 output rate
     "vuzo_markup_percent": 20.0,
     "is_active": True,
 }
@@ -36,15 +36,15 @@ def run():
     sb.table("model_pricing").update({"is_active": False}).neq("id", "00000000-0000-0000-0000-000000000000").execute()
     print("Done.")
 
-    # 2. Insert kimi-k2.5
-    print("Inserting kimi-k2.5...")
-    existing = sb.table("model_pricing").select("id").eq("model_name", "kimi-k2.5").execute()
+    # 2. Insert kimi-k2.6
+    print("Inserting kimi-k2.6...")
+    existing = sb.table("model_pricing").select("id").eq("model_name", "kimi-k2.6").execute()
     if existing.data:
-        sb.table("model_pricing").update({"is_active": True}).eq("model_name", "kimi-k2.5").execute()
-        print("kimi-k2.5 already existed — re-activated.")
+        sb.table("model_pricing").update({"is_active": True}).eq("model_name", "kimi-k2.6").execute()
+        print("kimi-k2.6 already existed — re-activated.")
     else:
         sb.table("model_pricing").insert(KIMI_MODEL).execute()
-        print("kimi-k2.5 inserted.")
+        print("kimi-k2.6 inserted.")
 
     # 3. Store encrypted Moonshot API key
     print("Storing Moonshot API key...")
@@ -64,7 +64,7 @@ def run():
         }).execute()
         print("Moonshot key inserted.")
 
-    print("\nDone. kimi-k2.5 is now the only active model.")
+    print("\nDone. kimi-k2.6 is now the only active model.")
 
 
 if __name__ == "__main__":

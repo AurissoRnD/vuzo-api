@@ -10,7 +10,7 @@ CLIENT = TestClient(app)
 MOCK_MODELS = [
     {
         "provider": "moonshot",
-        "model_name": "kimi-k2.5",
+        "model_name": "kimi-k2.6",
         "input_price_per_million": 0.14,
         "output_price_per_million": 0.14,
         "vuzo_markup_percent": 20.0,
@@ -58,9 +58,9 @@ class TestListModels:
 class TestGetSingleModel:
     def test_known_model_returns_200(self):
         with patch("app.routers.models_list.get_all_models", return_value=MOCK_MODELS):
-            resp = CLIENT.get("/v1/models/kimi-k2.5")
+            resp = CLIENT.get("/v1/models/kimi-k2.6")
         assert resp.status_code == 200
-        assert resp.json()["model_name"] == "kimi-k2.5"
+        assert resp.json()["model_name"] == "kimi-k2.6"
 
     def test_unknown_model_returns_404(self):
         with patch("app.routers.models_list.get_all_models", return_value=MOCK_MODELS):

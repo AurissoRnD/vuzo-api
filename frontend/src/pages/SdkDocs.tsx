@@ -128,7 +128,7 @@ import asyncio
 # As a context manager (recommended — ensures connection cleanup)
 async def main():
     async with AsyncVuzo("vz-sk_your_key_here") as client:
-        response = await client.chat.complete("kimi-k2.5", "Hello!")
+        response = await client.chat.complete("kimi-k2.6", "Hello!")
         print(response)
 
 asyncio.run(main())
@@ -136,7 +136,7 @@ asyncio.run(main())
 # Or instantiate manually and close when done
 async def main():
     client = AsyncVuzo("vz-sk_your_key_here")
-    response = await client.chat.complete("kimi-k2.5", "Hello!")
+    response = await client.chat.complete("kimi-k2.6", "Hello!")
     await client.close()
     return response`} />
           </Section>
@@ -149,12 +149,12 @@ async def main():
               returns="str"
               desc="Convenience one-liner. Sends a single user message and returns the assistant's text content directly."
               params={[
-                { name: 'model', type: 'str', desc: 'Model ID, e.g. "kimi-k2.5"' },
+                { name: 'model', type: 'str', desc: 'Model ID, e.g. "kimi-k2.6"' },
                 { name: 'prompt', type: 'str', desc: 'The user message' },
                 { name: '**kwargs', type: 'any', desc: 'Forwarded to create() — temperature, max_tokens, etc.' },
               ]}
             />
-            <CodeBlock language="python" code={`text = client.chat.complete("kimi-k2.5", "Explain relativity.")
+            <CodeBlock language="python" code={`text = client.chat.complete("kimi-k2.6", "Explain relativity.")
 print(text)  # plain string`} />
 
             <MethodBlock
@@ -171,7 +171,7 @@ print(text)  # plain string`} />
               ]}
             />
             <CodeBlock language="python" code={`response = client.chat.create(
-    model="kimi-k2.5",
+    model="kimi-k2.6",
     messages=[
         {"role": "system", "content": "You are a helpful assistant."},
         {"role": "user", "content": "What is 2 + 2?"},
@@ -193,7 +193,7 @@ print(f"Tokens: {response.usage.total_tokens}")`} />
                 { name: '**kwargs', type: 'any', desc: 'Forwarded to create()' },
               ]}
             />
-            <CodeBlock language="python" code={`for chunk in client.chat.stream("kimi-k2.5", [{"role": "user", "content": "Count to 5."}]):
+            <CodeBlock language="python" code={`for chunk in client.chat.stream("kimi-k2.6", [{"role": "user", "content": "Count to 5."}]):
     print(chunk, end="", flush=True)
 print()`} />
 
@@ -221,7 +221,7 @@ print()`} />
               returns="ModelPricingItem"
               desc="Fetch a single model's details. Calls GET /v1/models/{model_name} directly."
               params={[
-                { name: 'model_name', type: 'str', desc: 'Model ID, e.g. "kimi-k2.5"' },
+                { name: 'model_name', type: 'str', desc: 'Model ID, e.g. "kimi-k2.6"' },
               ]}
             />
             <CodeBlock language="python" code={`# List all models
@@ -230,7 +230,7 @@ for m in models:
     print(f"{m.id} | {m.provider} | in: \${m.input_price_per_million}/M | out: \${m.output_price_per_million}/M")
 
 # Fetch a single model
-model = client.models.get("kimi-k2.5")
+model = client.models.get("kimi-k2.6")
 print(model.provider)  # "moonshot"`} />
 
             <h4 className="text-white font-semibold mt-6 mb-3">ModelPricingItem fields</h4>
@@ -398,7 +398,7 @@ client.api_keys.delete(keys[0].id)`} />
 client = Vuzo("vz-sk_your_key_here")
 
 try:
-    response = client.chat.complete("kimi-k2.5", "Hello!")
+    response = client.chat.complete("kimi-k2.6", "Hello!")
 except AuthenticationError:
     print("Invalid API key — check your vz-sk_ key")
 except InsufficientCreditsError:

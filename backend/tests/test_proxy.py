@@ -11,7 +11,7 @@ MOCK_AUTH = AuthContext(user_id="user-123", api_key_id="key-456", rate_limit_rpm
 
 MOCK_PRICING = {
     "provider": "moonshot",
-    "model_name": "kimi-k2.5",
+    "model_name": "kimi-k2.6",
     "input_price_per_million": 0.14,
     "output_price_per_million": 0.14,
     "vuzo_markup_percent": 20.0,
@@ -25,7 +25,7 @@ MOCK_PROVIDER_RESPONSE = {
 }
 
 CHAT_BODY = {
-    "model": "kimi-k2.5",
+    "model": "kimi-k2.6",
     "messages": [{"role": "user", "content": "Say: pong"}],
     "stream": False,
     "max_tokens": 8,
@@ -139,5 +139,5 @@ class TestChatCompletionsErrors:
         assert resp.status_code == 422
 
     def test_missing_messages_field_returns_422(self, client):
-        resp = client.post("/v1/chat/completions", json={"model": "kimi-k2.5"})
+        resp = client.post("/v1/chat/completions", json={"model": "kimi-k2.6"})
         assert resp.status_code == 422
