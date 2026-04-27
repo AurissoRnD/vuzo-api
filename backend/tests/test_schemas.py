@@ -89,7 +89,7 @@ class TestModelPricingItem:
             output_price_per_million=0.60,
             vuzo_input_price_per_million=0.18,
             vuzo_output_price_per_million=0.72,
-            vuzo_markup_percent=20.0,
+            vuzo_markup_percent=35.0,
         )
         assert item.provider == "openai"
-        assert item.vuzo_markup_percent == 20.0
+        assert item.vuzo_markup_percent == 35.0

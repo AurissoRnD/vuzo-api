@@ -23,7 +23,7 @@ KIMI_MODEL = {
     "model_name": "kimi-k2.6",
     "input_price_per_million": 0.95,   # Moonshot kimi-k2.6 cache miss rate
     "output_price_per_million": 4.00,  # Moonshot kimi-k2.6 output rate
-    "vuzo_markup_percent": 20.0,
+    "vuzo_markup_percent": 35.0,
     "is_active": True,
 }
 

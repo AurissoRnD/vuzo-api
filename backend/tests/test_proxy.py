@@ -12,9 +12,9 @@ MOCK_AUTH = AuthContext(user_id="user-123", api_key_id="key-456", rate_limit_rpm
 MOCK_PRICING = {
     "provider": "moonshot",
     "model_name": "kimi-k2.6",
-    "input_price_per_million": 0.14,
-    "output_price_per_million": 0.14,
-    "vuzo_markup_percent": 20.0,
+    "input_price_per_million": 0.95,
+    "output_price_per_million": 4.00,
+    "vuzo_markup_percent": 35.0,
 }
 
 MOCK_PROVIDER_RESPONSE = {

@@ -11,9 +11,9 @@ MOCK_MODELS = [
     {
         "provider": "moonshot",
         "model_name": "kimi-k2.6",
-        "input_price_per_million": 0.14,
-        "output_price_per_million": 0.14,
-        "vuzo_markup_percent": 20.0,
+        "input_price_per_million": 0.95,
+        "output_price_per_million": 4.00,
+        "vuzo_markup_percent": 35.0,
         "is_active": True,
     }
 ]
