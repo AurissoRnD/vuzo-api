@@ -22,6 +22,22 @@ class Settings(BaseSettings):
     polar_product_50: str = ""
     polar_product_custom: str = ""  # "Pay what you want" product for custom amounts
 
+    # CardTransaction payment integration
+    sct_api_url: str = "https://secure.cardtransaction.com"
+    sct_project_code: str = ""
+    sct_merchant_code: str = ""
+    sct_api_key: str = ""
+    sct_test_mode_key: str = ""
+    sct_plan_10: str = ""
+    sct_plan_25: str = ""
+    sct_plan_50: str = ""
+    sct_plan_100: str = ""
+    sct_plan_150: str = ""
+    sct_plan_200: str = ""
+    sct_plan_300: str = ""
+    test_mode_key: str = ""
+    backend_url: str = "http://localhost:8000"
+
     # Frontend URL for CORS
     frontend_url: str = "http://localhost:5173"
 
