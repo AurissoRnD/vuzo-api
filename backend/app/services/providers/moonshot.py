@@ -125,6 +125,8 @@ class MoonshotProvider(BaseProvider):
             "messages": [m.model_dump(exclude_none=True) for m in request.messages],
             "stream": stream,
         }
+        if stream:
+            payload["stream_options"] = {"include_usage": True}
         if request.temperature is not None:
             payload["temperature"] = request.temperature
         if request.top_p is not None:
