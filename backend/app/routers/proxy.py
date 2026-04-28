@@ -6,7 +6,7 @@ from fastapi.responses import StreamingResponse
 from app.models.schemas import ChatCompletionRequest, AuthContext
 from app.middleware.auth import validate_api_key
 from app.services.pricing_service import get_model_pricing, get_provider_api_key
-from app.services.billing_service import check_sufficient_balance, deduct_credits
+from app.services.billing_service import check_sufficient_balance, deduct_credits, get_total_topups
 from app.services.usage_service import log_usage
 from app.services.providers.moonshot import MoonshotProvider
 from app.services.ws_manager import manager as ws_manager
@@ -17,8 +17,9 @@ router = APIRouter()
 _moonshot = MoonshotProvider()
 _providers = [_moonshot]
 
-_LOW_BALANCE_THRESHOLD = 1.00   # USD
-_LOW_TOKEN_PCT = 0.90           # 90% of token limit
+_MIN_LOW_BALANCE_THRESHOLD = 1.00  # never warn below $1 regardless of topup history
+_LOW_BALANCE_PCT = 0.20            # warn when balance < 20% of total lifetime topups
+_LOW_TOKEN_PCT = 0.90              # warn when 90% of token limit used
 
 
 def _get_provider(model: str):
@@ -73,12 +74,16 @@ async def _broadcast_usage(
                 "message": f"You have used {round(pct * 100, 1)}% of your token limit.",
             })
 
-    # Balance alerts
-    if new_balance < _LOW_BALANCE_THRESHOLD:
+    # Balance alerts — threshold is 20% of lifetime topups, minimum $1
+    total_topups = get_total_topups(auth.user_id)
+    low_balance_threshold = max(_MIN_LOW_BALANCE_THRESHOLD, total_topups * _LOW_BALANCE_PCT)
+
+    if new_balance < low_balance_threshold:
         await ws_manager.send(auth.user_id, {
             "type": "low_balance",
             "balance": round(new_balance, 6),
-            "message": f"Your balance is below ${_LOW_BALANCE_THRESHOLD:.2f}. Top up to avoid interruption.",
+            "threshold": round(low_balance_threshold, 2),
+            "message": f"Your balance is below ${low_balance_threshold:.2f}. Top up to avoid interruption.",
         })
 
 

@@ -74,6 +74,19 @@ def add_credits(user_id: str, amount: float, description: str = "Credit top-up")
     return new_balance, tx_id
 
 
+def get_total_topups(user_id: str) -> float:
+    """Sum of all topup transactions for a user (lifetime)."""
+    sb = get_supabase()
+    result = (
+        sb.table("credit_transactions")
+        .select("amount")
+        .eq("user_id", user_id)
+        .eq("type", "topup")
+        .execute()
+    )
+    return sum(float(t["amount"]) for t in (result.data or []))
+
+
 def get_transactions(user_id: str, limit: int = 50, offset: int = 0) -> list[dict]:
     sb = get_supabase()
     result = (
