@@ -6,7 +6,7 @@ from fastapi.responses import StreamingResponse
 from app.models.schemas import ChatCompletionRequest, AuthContext
 from app.middleware.auth import validate_api_key
 from app.services.pricing_service import get_model_pricing, get_provider_api_key
-from app.services.billing_service import check_sufficient_balance, deduct_credits, get_balance_after_last_topup
+from app.services.billing_service import check_sufficient_balance, deduct_credits
 from app.services.usage_service import log_usage
 from app.services.providers.moonshot import MoonshotProvider
 from app.services.ws_manager import manager as ws_manager
@@ -17,8 +17,9 @@ router = APIRouter()
 _moonshot = MoonshotProvider()
 _providers = [_moonshot]
 
-_LOW_BALANCE_PCT = 0.20            # warn when balance < 20% of total lifetime topups
-_LOW_TOKEN_PCT = 0.90              # warn when 90% of token limit used
+_BALANCE_LOW       = 1.00   # first warning
+_BALANCE_LOW_TOKENS = 0.50  # second warning
+_BALANCE_OUT        = 0.01  # critical — almost gone
 
 
 def _get_provider(model: str):
@@ -52,38 +53,24 @@ async def _broadcast_usage(
         "balance": round(new_balance, 6),
     })
 
-    # Token limit alerts
-    if auth.token_limit:
-        new_tokens_used = auth.tokens_used + total_tokens
-        pct = new_tokens_used / auth.token_limit
-
-        if new_tokens_used >= auth.token_limit:
-            await ws_manager.send(auth.user_id, {
-                "type": "out_of_tokens",
-                "tokens_used": new_tokens_used,
-                "token_limit": auth.token_limit,
-                "message": "Token limit reached. Top up to continue.",
-            })
-        elif pct >= _LOW_TOKEN_PCT and auth.tokens_used / auth.token_limit < _LOW_TOKEN_PCT:
-            await ws_manager.send(auth.user_id, {
-                "type": "low_tokens",
-                "tokens_used": new_tokens_used,
-                "token_limit": auth.token_limit,
-                "percent_used": round(pct * 100, 1),
-                "message": f"You have used {round(pct * 100, 1)}% of your token limit.",
-            })
-
-    # Balance alert — fires when balance drops below 20% of the balance
-    # at time of last topup (resets each topup cycle, Twilio-style)
-    balance_at_last_topup = get_balance_after_last_topup(auth.user_id, new_balance)
-    low_balance_threshold = balance_at_last_topup * _LOW_BALANCE_PCT
-
-    if low_balance_threshold > 0 and new_balance < low_balance_threshold:
+    # Three-tier balance alerts
+    if new_balance < _BALANCE_OUT:
+        await ws_manager.send(auth.user_id, {
+            "type": "out_of_tokens",
+            "balance": round(new_balance, 6),
+            "message": "You have almost no credits left. Top up immediately to continue.",
+        })
+    elif new_balance < _BALANCE_LOW_TOKENS:
+        await ws_manager.send(auth.user_id, {
+            "type": "low_tokens",
+            "balance": round(new_balance, 6),
+            "message": "Your balance is below $0.50. Top up soon to avoid interruption.",
+        })
+    elif new_balance < _BALANCE_LOW:
         await ws_manager.send(auth.user_id, {
             "type": "low_balance",
             "balance": round(new_balance, 6),
-            "threshold": round(low_balance_threshold, 2),
-            "message": f"Your balance is below ${low_balance_threshold:.2f}. Top up to avoid interruption.",
+            "message": "Your balance is below $1.00. Consider topping up.",
         })
 
 
