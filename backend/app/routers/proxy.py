@@ -6,7 +6,7 @@ from fastapi.responses import StreamingResponse
 from app.models.schemas import ChatCompletionRequest, AuthContext
 from app.middleware.auth import validate_api_key
 from app.services.pricing_service import get_model_pricing, get_provider_api_key
-from app.services.billing_service import check_sufficient_balance, deduct_credits, get_total_topups
+from app.services.billing_service import check_sufficient_balance, deduct_credits, get_balance_after_last_topup
 from app.services.usage_service import log_usage
 from app.services.providers.moonshot import MoonshotProvider
 from app.services.ws_manager import manager as ws_manager
@@ -73,11 +73,12 @@ async def _broadcast_usage(
                 "message": f"You have used {round(pct * 100, 1)}% of your token limit.",
             })
 
-    # Balance alerts — threshold is 20% of lifetime topups
-    total_topups = get_total_topups(auth.user_id)
-    low_balance_threshold = total_topups * _LOW_BALANCE_PCT
+    # Balance alert — fires when balance drops below 20% of the balance
+    # at time of last topup (resets each topup cycle, Twilio-style)
+    balance_at_last_topup = get_balance_after_last_topup(auth.user_id, new_balance)
+    low_balance_threshold = balance_at_last_topup * _LOW_BALANCE_PCT
 
-    if new_balance < low_balance_threshold:
+    if low_balance_threshold > 0 and new_balance < low_balance_threshold:
         await ws_manager.send(auth.user_id, {
             "type": "low_balance",
             "balance": round(new_balance, 6),

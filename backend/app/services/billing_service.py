@@ -87,6 +87,43 @@ def get_total_topups(user_id: str) -> float:
     return sum(float(t["amount"]) for t in (result.data or []))
 
 
+def get_balance_after_last_topup(user_id: str, current_balance: float) -> float:
+    """
+    Reconstruct the balance immediately after the user's last topup.
+    Formula: current_balance + sum of all usage debits since last topup.
+    Used to calculate the low-balance threshold on a per-cycle basis.
+    Returns 0 if no topup exists.
+    """
+    sb = get_supabase()
+
+    last_topup = (
+        sb.table("credit_transactions")
+        .select("created_at")
+        .eq("user_id", user_id)
+        .eq("type", "topup")
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+
+    if not last_topup.data:
+        return 0.0
+
+    last_topup_time = last_topup.data[0]["created_at"]
+
+    usage_since = (
+        sb.table("credit_transactions")
+        .select("amount")
+        .eq("user_id", user_id)
+        .eq("type", "usage")
+        .gte("created_at", last_topup_time)
+        .execute()
+    )
+
+    spent_since_topup = sum(abs(float(t["amount"])) for t in (usage_since.data or []))
+    return current_balance + spent_since_topup
+
+
 def get_transactions(user_id: str, limit: int = 50, offset: int = 0) -> list[dict]:
     sb = get_supabase()
     result = (
