@@ -14,7 +14,8 @@ from pydantic import BaseModel
 from app.config import get_settings
 from app.dependencies import get_current_user_id
 from app.models.database import get_supabase
-from app.services.billing_service import add_credits
+from app.services.billing_service import add_credits, get_balance
+from app.services.ws_manager import manager as ws_manager
 
 def _already_credited(user_id: str, idempotency_key: str) -> bool:
     """Check if we've already processed this payment by searching for the key in transaction descriptions."""
@@ -165,6 +166,16 @@ async def _handle_callback(request: Request) -> RedirectResponse:
     if is_test:
         label += " [test]"
     add_credits(user_id=user_id, amount=amount, description=label)
+
+    # Push instant balance update to app if WebSocket is connected
+    if ws_manager.is_connected(user_id):
+        new_balance = get_balance(user_id)
+        await ws_manager.send(user_id, {
+            "type": "topup",
+            "amount": round(amount, 2),
+            "balance": round(new_balance, 6),
+            "message": f"Top-up of ${amount:.2f} received. New balance: ${new_balance:.2f}",
+        })
 
     remove_pending(request_code)
 
