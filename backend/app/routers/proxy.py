@@ -29,6 +29,20 @@ def _get_provider(model: str):
     return None
 
 
+def _extract_chunk_content(chunk_str: str) -> str:
+    """Extract text content from an SSE chunk for token estimation."""
+    if not chunk_str.startswith("data: "):
+        return ""
+    data_str = chunk_str[6:].strip()
+    if data_str == "[DONE]":
+        return ""
+    try:
+        chunk = json.loads(data_str)
+        return chunk.get("choices", [{}])[0].get("delta", {}).get("content", "") or ""
+    except Exception:
+        return ""
+
+
 async def _broadcast_usage(
     auth: AuthContext,
     model: str,
@@ -155,11 +169,37 @@ async def chat_completions(
 async def _stream_response(request, provider, master_key, pricing, auth: AuthContext):
     start = time.time()
     final_usage = None
+    connected = ws_manager.is_connected(auth.user_id)
+
+    # Pre-calculate per-token output cost for delta estimates
+    output_cost_per_token = (
+        float(pricing["output_price_per_million"]) / 1_000_000
+        * (1 + float(pricing["vuzo_markup_percent"]) / 100)
+    )
+
+    # Signal stream start so app can initialise predictedBalance
+    if connected:
+        await ws_manager.send(auth.user_id, {
+            "type": "stream_start",
+            "model": request.model,
+        })
 
     async for chunk_str, usage in provider.chat_completion_stream(request, master_key):
         if usage is not None:
             final_usage = usage
         yield chunk_str
+
+        # Push delta estimate after each chunk — ~4 chars per token (English)
+        if connected:
+            content = _extract_chunk_content(chunk_str)
+            if content:
+                est_tokens = max(1, len(content) // 4)
+                est_cost = est_tokens * output_cost_per_token
+                await ws_manager.send(auth.user_id, {
+                    "type": "stream_delta",
+                    "estimated_output_tokens": est_tokens,
+                    "estimated_cost": round(est_cost, 8),
+                })
 
     elapsed_ms = int((time.time() - start) * 1000)
 
