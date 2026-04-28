@@ -11,7 +11,7 @@ def get_balance(user_id: str) -> float:
     return float(result.data[0]["balance"])
 
 
-def check_sufficient_balance(user_id: str, min_amount: float = 0.001) -> float:
+def check_sufficient_balance(user_id: str, min_amount: float = 0.05) -> float:
     """
     Check that the user has at least min_amount in credits.
     Returns the current balance. Raises 402 if insufficient.
@@ -20,7 +20,7 @@ def check_sufficient_balance(user_id: str, min_amount: float = 0.001) -> float:
     if balance < min_amount:
         raise HTTPException(
             status_code=402,
-            detail=f"Insufficient credits. Balance: ${balance:.6f}. Please top up.",
+            detail=f"Insufficient credits (${balance:.4f}). Please top up at your SimplerClaw dashboard to continue.",
         )
     return balance
 
