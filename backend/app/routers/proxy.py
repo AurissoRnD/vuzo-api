@@ -17,7 +17,6 @@ router = APIRouter()
 _moonshot = MoonshotProvider()
 _providers = [_moonshot]
 
-_MIN_LOW_BALANCE_THRESHOLD = 1.00  # never warn below $1 regardless of topup history
 _LOW_BALANCE_PCT = 0.20            # warn when balance < 20% of total lifetime topups
 _LOW_TOKEN_PCT = 0.90              # warn when 90% of token limit used
 
@@ -74,9 +73,9 @@ async def _broadcast_usage(
                 "message": f"You have used {round(pct * 100, 1)}% of your token limit.",
             })
 
-    # Balance alerts — threshold is 20% of lifetime topups, minimum $1
+    # Balance alerts — threshold is 20% of lifetime topups
     total_topups = get_total_topups(auth.user_id)
-    low_balance_threshold = max(_MIN_LOW_BALANCE_THRESHOLD, total_topups * _LOW_BALANCE_PCT)
+    low_balance_threshold = total_topups * _LOW_BALANCE_PCT
 
     if new_balance < low_balance_threshold:
         await ws_manager.send(auth.user_id, {
