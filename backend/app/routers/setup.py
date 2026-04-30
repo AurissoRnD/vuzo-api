@@ -20,19 +20,6 @@ class InstallerRequest(BaseModel):
     key_name: str = "OpenClaw"
 
 
-def _starter_grant_already_given(sb, user_id: str) -> bool:
-    """Return True if this user has already received the free starter allowance."""
-    result = (
-        sb.table("credit_transactions")
-        .select("id")
-        .eq("user_id", user_id)
-        .eq("type", "topup")
-        .ilike("description", "%starter allowance%")
-        .limit(1)
-        .execute()
-    )
-    return bool(result.data)
-
 
 def _rotate_openclaw_key(sb, user_id: str, key_name: str) -> str:
     """Revoke the existing named key (if any) and issue a fresh one. Returns the new plaintext key."""
@@ -98,13 +85,7 @@ async def setup_installer(body: InstallerRequest):
             }).execute()
             if new_user.data:
                 uid = new_user.data[0]["id"]
-                sb.table("credits").insert({"user_id": uid, "balance": 1.00}).execute()
-                sb.table("credit_transactions").insert({
-                    "user_id": uid,
-                    "amount": 1.00,
-                    "type": "topup",
-                    "description": "Free starter allowance — SimplerClaw installer",
-                }).execute()
+                sb.table("credits").insert({"user_id": uid, "balance": 0.00}).execute()
 
     else:
         # --- Login: fail if credentials are wrong ---
