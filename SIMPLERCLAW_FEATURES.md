@@ -18,7 +18,7 @@ When a user installs OpenClaw, SimplerClaw automatically:
 - Creates their account
 - Issues a unique `vz-sk_` API key
 - Injects it into their OpenClaw configuration
-- Grants $1.00 in starter credits
+- Balance starts at $0 — user tops up via CardTransaction
 
 No manual setup. No separate accounts. One installer, done.
 
