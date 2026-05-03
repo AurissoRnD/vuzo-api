@@ -48,12 +48,67 @@ From the business perspective:
 
 ### 1. User Onboarding (Installer Flow)
 
-The user runs the SimplerClaw installer wizard on their machine. The installer calls our API's `/v1/setup/installer` endpoint:
+The user runs the SimplerClaw installer wizard on their machine. The installer calls:
 
-- **New user:** Account is created in Supabase Auth → internal user record is created → **$1.00 free starter credit** is granted → a `vz-sk_` API key with a **500,000 token cap** is issued → the key is automatically written into the user's OpenClaw config
-- **Returning user:** They log in → existing key is revoked and a new one is issued → remaining token budget is carried over → single-device enforcement kicks in (logging in from a new device signs out the old one)
+- `POST /v1/setup/installer`
 
-The user never sees or touches an API key manually.
+This endpoint supports both account creation and login:
+
+- **`type=register`**
+  - Creates Supabase Auth account
+  - Creates internal `users` + `credits` records (starting balance is `0.00`)
+  - Issues a fresh OpenClaw API key
+- **`type=login`**
+  - Authenticates existing account
+  - Rotates OpenClaw API key (revoke old key, issue new key)
+  - Enforces single-device session behavior
+
+The user never needs to manually create or paste API keys in OpenClaw setup.
+
+#### Installer Setup Request
+
+```json
+{
+  "type": "register",
+  "email": "user@example.com",
+  "password": "strong_password",
+  "key_name": "OpenClaw"
+}
+```
+
+`type` can be `register` or `login`.
+
+#### Installer Setup Response (Current)
+
+```json
+{
+  "api_key": "vz-sk_...",
+  "models": ["kimi-k2.6"],
+  "openclaw_config": {
+    "base_url": "https://vuzo-api.onrender.com/v1",
+    "provider_name": "vuzo",
+    "models": ["kimi-k2.6"]
+  },
+  "dashboard_url": "https://vuzo-api-1.onrender.com#refresh_token=...",
+  "web_payment": {
+    "has_paid_via_web": true,
+    "latest": {
+      "transaction_id": "uuid",
+      "package": "starter",
+      "credits_amount": 10.0,
+      "payment_amount": 19.0,
+      "paid_at": "2026-05-03T10:00:00Z"
+    }
+  },
+  "session": {
+    "access_token": "...",
+    "refresh_token": "...",
+    "expires_in": 3600
+  }
+}
+```
+
+`web_payment.has_paid_via_web` is derived from `credit_transactions` package-purchase history (`starter`, `popular`, `pro`) and is returned for both register and login responses.
 
 ---
 
@@ -184,8 +239,8 @@ The admin portal at `https://vuzo-api-1.onrender.com/admin` is accessible only t
 
 | Metric | Value |
 |---|---|
-| Starter credit per new user | $1.00 |
-| Initial token cap (OpenClaw key) | 500,000 tokens |
+| Starter credit per new user | $0.00 |
+| Initial token cap (OpenClaw key) | Not enforced by default |
 | Our markup over provider cost | 20% |
 | Default rate limit | 60 requests/minute per key |
 | Credit precision | 6 decimal places (USD) |
