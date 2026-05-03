@@ -28,6 +28,10 @@ services:
         sync: false
       - key: WEB_APP_URL
         sync: false
+      - key: SCT_TEST_MODE_KEY
+        sync: false
+      - key: TEST_MODE_KEY
+        sync: false
       - key: FRONTEND_URL
         sync: false
       - key: APP_ENV
