@@ -132,6 +132,7 @@ async def create_package_checkout(
         "amount": pkg["payment"],
         "credits_amount": pkg["credits"],
         "package": body.package,
+        "redirect_url": settings.web_app_url.rstrip("/"),
         "sct_mode": "test" if is_test else "live",
     }
 
@@ -208,6 +209,7 @@ async def _handle_callback(request: Request) -> RedirectResponse:
 
     credits_amount: Optional[float] = None
     redirect_url: Optional[str] = None
+    package_name: Optional[str] = None
 
     pending = get_pending(request_code) if (user_id is None or amount is None) else None
     if pending:
@@ -216,16 +218,21 @@ async def _handle_callback(request: Request) -> RedirectResponse:
         is_test = is_test or bool(pending.get("is_test"))
         credits_amount = pending.get("credits_amount")
         redirect_url = pending.get("redirect_url")
+        package_name = (pending.get("package") or "").strip().lower() or None
     else:
         # Also check meta_data for credits_amount (package purchases)
         if sct.get("success"):
             meta = sct.get("meta_data") or {}
             credits_amount = float(meta.get("credits_amount") or 0) or None
             redirect_url = meta.get("redirect_url")
+            package_name = (meta.get("package") or "").strip().lower() or None
 
     # Use credit amount if set (package purchase), otherwise credit the payment amount
     to_credit = credits_amount if credits_amount and credits_amount > 0 else amount
     destination = (redirect_url or frontend).rstrip("/")
+    # Package checkouts (starter/popular/pro) should always return to the web app URL.
+    if package_name in PACKAGES:
+        destination = settings.web_app_url.rstrip("/")
 
     if not user_id or not amount or amount <= 0:
         return RedirectResponse(
@@ -242,8 +249,8 @@ async def _handle_callback(request: Request) -> RedirectResponse:
             status_code=303,
         )
 
-    package_name = (pending or {}).get("package", "") if pending else ""
-    label = f"Package purchase ({package_name}): paid ${amount:.2f}, credited ${to_credit:.2f}" if package_name else f"CardTransaction payment: ${to_credit:.2f}"
+    package_label = package_name or ""
+    label = f"Package purchase ({package_label}): paid ${amount:.2f}, credited ${to_credit:.2f}" if package_label else f"CardTransaction payment: ${to_credit:.2f}"
     if transaction_code:
         label += f" ({transaction_code})"
     if is_test:
