@@ -172,6 +172,65 @@ async def list_packages():
     ]
 
 
+def _find_package_transaction(user_id: str, idempotency_key: str) -> Optional[dict]:
+    sb = get_supabase()
+    result = (
+        sb.table("credit_transactions")
+        .select("id, amount, payment_amount, description, created_at")
+        .eq("user_id", user_id)
+        .eq("type", "topup")
+        .ilike("description", f"%({idempotency_key})%")
+        .order("created_at", desc=True)
+        .limit(1)
+        .execute()
+    )
+    if not result.data:
+        return None
+    return result.data[0]
+
+
+@router.get("/billing/confirm-package")
+async def confirm_package_payment(
+    request_code: str = "",
+    txn: str = "",
+    user_id: str = Depends(get_current_user_id),
+):
+    """
+    Confirm whether a web package payment (starter/popular/pro) was successfully credited.
+
+    Pass either the CardTransaction request_code or the txn returned on the thank-you redirect.
+    Returns paid=true with the matching credit_transactions row when found.
+    """
+    key = (txn or request_code or "").strip()
+    if not key:
+        raise HTTPException(status_code=400, detail="Provide request_code or txn")
+
+    transaction = _find_package_transaction(user_id, key)
+    if not transaction:
+        return {"paid": False, "transaction": None}
+
+    description = transaction.get("description") or ""
+    package_name: Optional[str] = None
+    if "Package purchase (" in description:
+        try:
+            package_name = description.split("Package purchase (", 1)[1].split(")", 1)[0].strip().lower()
+        except IndexError:
+            package_name = None
+    if package_name not in PACKAGES:
+        package_name = None
+
+    return {
+        "paid": True,
+        "transaction": {
+            "transaction_id": transaction.get("id"),
+            "package": package_name,
+            "credits_amount": transaction.get("amount"),
+            "payment_amount": transaction.get("payment_amount"),
+            "paid_at": transaction.get("created_at"),
+        },
+    }
+
+
 async def _handle_callback(request: Request) -> RedirectResponse:
     settings = get_settings()
     frontend = settings.frontend_url.rstrip("/")
