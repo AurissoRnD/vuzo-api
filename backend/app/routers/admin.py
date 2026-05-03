@@ -24,9 +24,13 @@ def _require_admin(user_id: str = Depends(get_current_user_id)) -> str:
 async def admin_overview(_: str = Depends(_require_admin)):
     sb = get_supabase()
 
-    # Revenue: sum of all topup transactions
-    topups = sb.table("credit_transactions").select("amount, created_at").eq("type", "topup").execute()
-    total_revenue = sum(float(t["amount"]) for t in (topups.data or []))
+    # Revenue: use payment_amount when set (package purchases), else amount (regular top-ups)
+    topups = sb.table("credit_transactions").select("amount, payment_amount, created_at").eq("type", "topup").execute()
+    total_revenue = sum(
+        float(t["payment_amount"]) if t.get("payment_amount") else float(t["amount"])
+        for t in (topups.data or [])
+    )
+    total_credits_issued = sum(float(t["amount"]) for t in (topups.data or []))
 
     # Usage costs
     usage_all = sb.table("usage_logs").select("provider_cost, vuzo_cost, total_tokens, created_at").execute()
@@ -69,10 +73,12 @@ async def admin_overview(_: str = Depends(_require_admin)):
                 daily[date] = {"date": date, "charged": 0.0, "provider_cost": 0.0, "tokens": 0, "requests": 0, "topups": 0.0}
             if "topups" not in daily[date]:
                 daily[date]["topups"] = 0.0
-            daily[date]["topups"] += float(t["amount"])
+            # Use payment_amount for daily topup chart (actual cash received)
+            daily[date]["topups"] += float(t["payment_amount"]) if t.get("payment_amount") else float(t["amount"])
 
     return {
         "total_revenue": total_revenue,
+        "total_credits_issued": total_credits_issued,
         "total_provider_cost": total_provider_cost,
         "total_vuzo_cost": total_vuzo_cost,
         "profit": profit,

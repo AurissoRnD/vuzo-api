@@ -248,7 +248,9 @@ async def _handle_callback(request: Request) -> RedirectResponse:
         label += f" ({transaction_code})"
     if is_test:
         label += " [test]"
-    add_credits(user_id=user_id, amount=to_credit, description=label)
+    # For package purchases, record actual payment separately from credits issued
+    recorded_payment = float(amount) if to_credit != amount else None
+    add_credits(user_id=user_id, amount=to_credit, description=label, payment_amount=recorded_payment)
 
     # Push instant balance update to app if WebSocket is connected
     if ws_manager.is_connected(user_id):

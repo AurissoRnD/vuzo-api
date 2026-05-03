@@ -49,9 +49,16 @@ def deduct_credits(user_id: str, amount: float, description: str) -> float:
     return new_balance
 
 
-def add_credits(user_id: str, amount: float, description: str = "Credit top-up") -> tuple[float, str]:
+def add_credits(
+    user_id: str,
+    amount: float,
+    description: str = "Credit top-up",
+    payment_amount: float | None = None,
+) -> tuple[float, str]:
     """
     Add credits to the user's balance.
+    - amount: credits added (what the user gets)
+    - payment_amount: actual cash received (may differ for package purchases)
     Returns (new_balance, transaction_id).
     """
     sb = get_supabase()
@@ -63,12 +70,16 @@ def add_credits(user_id: str, amount: float, description: str = "Credit top-up")
         {"balance": new_balance, "updated_at": "now()"}
     ).eq("user_id", user_id).execute()
 
-    tx_result = sb.table("credit_transactions").insert({
+    tx_row: dict = {
         "user_id": user_id,
         "amount": amount,
         "type": "topup",
         "description": description,
-    }).execute()
+    }
+    if payment_amount is not None:
+        tx_row["payment_amount"] = payment_amount
+
+    tx_result = sb.table("credit_transactions").insert(tx_row).execute()
 
     tx_id = tx_result.data[0]["id"] if tx_result.data else ""
     return new_balance, tx_id
