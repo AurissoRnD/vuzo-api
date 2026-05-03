@@ -30,8 +30,10 @@ def _already_credited(user_id: str, idempotency_key: str) -> bool:
     )
     return bool(result.data)
 from app.services.cardtransaction_service import (
+    PACKAGES,
     VALID_AMOUNTS,
     generate_payment_link,
+    get_package,
     get_plan_code_for_amount,
     get_request_code,
     is_test_mode_request,
@@ -43,6 +45,10 @@ router = APIRouter()
 
 class SctCheckoutRequest(BaseModel):
     amount: int
+
+
+class PackageCheckoutRequest(BaseModel):
+    package: str  # "starter" | "popular" | "pro"
 
 
 class SctCheckoutResponse(BaseModel):
@@ -104,6 +110,67 @@ async def create_sct_checkout(
     return SctCheckoutResponse(url=result["url"])
 
 
+@router.post("/billing/checkout-package", response_model=SctCheckoutResponse)
+async def create_package_checkout(
+    body: PackageCheckoutRequest,
+    request: Request,
+    user_id: str = Depends(get_current_user_id),
+):
+    """
+    Initiate a package purchase checkout via CardTransaction.
+    Payment amount differs from credit amount (bonus credits on higher tiers).
+    """
+    pkg = get_package(body.package)
+    is_test = is_test_mode_request(dict(request.headers))
+    email = _get_user_email(user_id)
+
+    settings = get_settings()
+    callback_url = f"{settings.backend_url.rstrip('/')}/v1/billing/sct-callback"
+
+    meta_data = {
+        "user_id": user_id,
+        "amount": pkg["payment"],
+        "credits_amount": pkg["credits"],
+        "package": body.package,
+        "sct_mode": "test" if is_test else "live",
+    }
+
+    result = await generate_payment_link(
+        email=email,
+        plan_code=pkg["plan_code"],
+        meta_data=meta_data,
+        callback_url=callback_url,
+        is_test=is_test,
+    )
+
+    request_code = result.get("request_code", "")
+    if request_code:
+        save_pending(request_code, {
+            "user_id": user_id,
+            "amount": float(pkg["payment"]),
+            "credits_amount": float(pkg["credits"]),
+            "package": body.package,
+            "is_test": is_test,
+            "redirect_url": settings.web_app_url.rstrip("/"),
+        })
+
+    return SctCheckoutResponse(url=result["url"])
+
+
+@router.get("/billing/packages")
+async def list_packages():
+    """Return available packages with payment and credit amounts."""
+    return [
+        {
+            "id": k,
+            "label": v["label"],
+            "payment": v["payment"],
+            "credits": v["credits"],
+        }
+        for k, v in PACKAGES.items()
+    ]
+
+
 async def _handle_callback(request: Request) -> RedirectResponse:
     settings = get_settings()
     frontend = settings.frontend_url.rstrip("/")
@@ -139,11 +206,26 @@ async def _handle_callback(request: Request) -> RedirectResponse:
         payment = sct.get("payment_data") or {}
         transaction_code = transaction_code or payment.get("invoice_number") or ""
 
+    credits_amount: Optional[float] = None
+    redirect_url: Optional[str] = None
+
     pending = get_pending(request_code) if (user_id is None or amount is None) else None
     if pending:
         user_id = user_id or pending.get("user_id")
         amount = amount or pending.get("amount")
         is_test = is_test or bool(pending.get("is_test"))
+        credits_amount = pending.get("credits_amount")
+        redirect_url = pending.get("redirect_url")
+    else:
+        # Also check meta_data for credits_amount (package purchases)
+        if sct.get("success"):
+            meta = sct.get("meta_data") or {}
+            credits_amount = float(meta.get("credits_amount") or 0) or None
+            redirect_url = meta.get("redirect_url")
+
+    # Use credit amount if set (package purchase), otherwise credit the payment amount
+    to_credit = credits_amount if credits_amount and credits_amount > 0 else amount
+    destination = (redirect_url or frontend).rstrip("/")
 
     if not user_id or not amount or amount <= 0:
         return RedirectResponse(
@@ -156,16 +238,17 @@ async def _handle_callback(request: Request) -> RedirectResponse:
         remove_pending(request_code)
         mode_param = "&mode=test" if is_test else ""
         return RedirectResponse(
-            url=f"{frontend}/thank-you?txn={idempotency_key}{mode_param}",
+            url=f"{destination}/thank-you?txn={idempotency_key}{mode_param}",
             status_code=303,
         )
 
-    label = f"CardTransaction payment: ${amount:.2f}"
+    package_name = (pending or {}).get("package", "") if pending else ""
+    label = f"Package purchase ({package_name}): paid ${amount:.2f}, credited ${to_credit:.2f}" if package_name else f"CardTransaction payment: ${to_credit:.2f}"
     if transaction_code:
         label += f" ({transaction_code})"
     if is_test:
         label += " [test]"
-    add_credits(user_id=user_id, amount=amount, description=label)
+    add_credits(user_id=user_id, amount=to_credit, description=label)
 
     # Push instant balance update to app if WebSocket is connected
     if ws_manager.is_connected(user_id):
@@ -182,7 +265,7 @@ async def _handle_callback(request: Request) -> RedirectResponse:
     txn_param = transaction_code or request_code
     mode_param = "&mode=test" if is_test else ""
     return RedirectResponse(
-        url=f"{frontend}/thank-you?txn={txn_param}{mode_param}",
+        url=f"{destination}/thank-you?txn={txn_param}{mode_param}",
         status_code=303,
     )
 

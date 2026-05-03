@@ -20,6 +20,14 @@ services:
         sync: false
       - key: MOONSHOT_API_KEY
         sync: false
+      - key: SCT_PLAN_STARTER
+        sync: false
+      - key: SCT_PLAN_POPULAR
+        sync: false
+      - key: SCT_PLAN_PRO
+        sync: false
+      - key: WEB_APP_URL
+        sync: false
       - key: FRONTEND_URL
         sync: false
       - key: APP_ENV

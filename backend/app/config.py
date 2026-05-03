@@ -28,6 +28,12 @@ class Settings(BaseSettings):
     test_mode_key: str = ""
     backend_url: str = "http://localhost:8000"
 
+    # Package plans (payment ≠ credits)
+    sct_plan_starter: str = ""   # $19 payment → $10 credits
+    sct_plan_popular: str = ""   # $50 payment → $55 credits
+    sct_plan_pro: str = ""       # $100 payment → $115 credits
+    web_app_url: str = "http://localhost:3000"  # SimplerClaw web app URL
+
     # Frontend URL for CORS
     frontend_url: str = "http://localhost:5173"
 

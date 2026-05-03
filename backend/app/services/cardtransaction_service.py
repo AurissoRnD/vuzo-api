@@ -11,6 +11,25 @@ from fastapi import HTTPException
 from app.config import get_settings
 from app.models.database import get_http_client
 
+# Packages: payment ≠ credits (bonus credits on higher tiers)
+PACKAGES: dict[str, dict] = {
+    "starter": {"payment": 19,  "credits": 10.0,  "plan_key": "sct_plan_starter", "label": "Starter"},
+    "popular": {"payment": 50,  "credits": 55.0,  "plan_key": "sct_plan_popular", "label": "Popular"},
+    "pro":     {"payment": 100, "credits": 115.0, "plan_key": "sct_plan_pro",     "label": "Pro"},
+}
+
+
+def get_package(package: str) -> dict:
+    pkg = PACKAGES.get(package)
+    if not pkg:
+        raise HTTPException(status_code=400, detail=f"Invalid package '{package}'. Must be one of: {list(PACKAGES)}")
+    settings = get_settings()
+    plan_code = getattr(settings, pkg["plan_key"], "")
+    if not plan_code:
+        raise HTTPException(status_code=503, detail=f"Plan not configured for package '{package}'")
+    return {**pkg, "plan_code": plan_code}
+
+
 _PLAN_BY_AMOUNT = {
     10: "sct_plan_10",
     25: "sct_plan_25",
