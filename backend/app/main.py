@@ -27,9 +27,12 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         settings.frontend_url,
+        settings.web_app_url,
         "http://localhost:5173",
+        "http://localhost:3000",
         "https://vuzo-dashboard.onrender.com",
         "https://vuzo-api-1.onrender.com",
+        "https://simpler-claw-web-staging.onrender.com",
     ],
     allow_credentials=True,
     allow_methods=["*"],
