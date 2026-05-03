@@ -161,7 +161,7 @@ async def setup_installer(body: InstallerRequest):
         sb = get_supabase()
 
         # --- Single-device enforcement ---
-        # Check if this user already has an active session on another device.
+        # If an older session is still active, revoke it and let this login continue.
         user_row = (
             sb.table("users")
             .select("id, active_refresh_token")
@@ -178,15 +178,11 @@ async def setup_installer(body: InstallerRequest):
             try:
                 check = sb_auth.auth.refresh_session(stored_token)
                 if check.session:
-                    # Still active on another device — reject and clean up the new session
+                    # Revoke prior active session so this login becomes the single active device.
                     try:
-                        sb_auth.auth.admin.sign_out(supabase_session.access_token)
+                        sb_auth.auth.admin.sign_out(check.session.access_token)
                     except Exception:
                         pass
-                    raise HTTPException(
-                        status_code=409,
-                        detail="You are already signed in on another device. Please sign out first."
-                    )
             except AuthApiError:
                 pass  # Stored token is dead — allow login
 
