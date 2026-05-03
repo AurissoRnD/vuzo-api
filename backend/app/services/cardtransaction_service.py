@@ -61,9 +61,18 @@ def get_plan_code_for_amount(amount: int) -> str:
 
 def is_test_mode_request(headers: dict) -> bool:
     settings = get_settings()
-    if not settings.test_mode_key:
+    mode_header = headers.get("x-mode", "")
+    if not mode_header:
         return False
-    return headers.get("x-mode", "") == settings.test_mode_key
+
+    accepted_keys = [key for key in [settings.test_mode_key, settings.sct_test_mode_key] if key]
+    if not accepted_keys:
+        raise HTTPException(status_code=503, detail="Test mode is not configured")
+
+    if mode_header in accepted_keys:
+        return True
+
+    raise HTTPException(status_code=403, detail="Unauthorized: Invalid test mode credentials")
 
 
 def _resolve_mode(is_test: bool) -> str:

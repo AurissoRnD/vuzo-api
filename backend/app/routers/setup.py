@@ -1,3 +1,4 @@
+import re
 from typing import Literal
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -11,6 +12,7 @@ from app.services.pricing_service import get_all_models
 router = APIRouter()
 
 VUZO_API_BASE_URL = "https://vuzo-api.onrender.com/v1"
+WEB_PACKAGE_IDS = {"starter", "popular", "pro"}
 
 
 class InstallerRequest(BaseModel):
@@ -35,6 +37,62 @@ def _rotate_openclaw_key(sb, user_id: str, key_name: str) -> str:
         sb.table("api_keys").update({"is_active": False}).eq("id", existing.data[0]["id"]).execute()
 
     return create_api_key(user_id=user_id, name=key_name, token_limit=None)["key"]
+
+
+def _extract_package_from_description(description: str) -> str | None:
+    match = re.search(r"Package purchase \(([^)]+)\)", description or "")
+    if not match:
+        return None
+    package = match.group(1).strip().lower()
+    return package or None
+
+
+def _get_web_payment_status(sb, user_id: str) -> dict:
+    """
+    Return whether the user has completed a valid web package payment
+    (starter/popular/pro) and the latest matching transaction metadata.
+    """
+    result = (
+        sb.table("credit_transactions")
+        .select("id, amount, payment_amount, description, created_at")
+        .eq("user_id", user_id)
+        .eq("type", "topup")
+        .order("created_at", desc=True)
+        .limit(50)
+        .execute()
+    )
+
+    if not result.data:
+        return {
+            "has_paid_via_web": False,
+            "latest": None,
+        }
+
+    latest = None
+    package_name = None
+    for row in result.data:
+        parsed_package = _extract_package_from_description(row.get("description", ""))
+        if parsed_package in WEB_PACKAGE_IDS:
+            latest = row
+            package_name = parsed_package
+            break
+
+    if latest is None:
+        return {
+            "has_paid_via_web": False,
+            "latest": None,
+        }
+
+    return {
+        "has_paid_via_web": True,
+        "latest": {
+            "transaction_id": latest.get("id"),
+            "package": package_name,
+            "credits_amount": latest.get("amount"),
+            "payment_amount": latest.get("payment_amount"),
+            "paid_at": latest.get("created_at"),
+        },
+    }
 
 
 @router.post("/setup/installer")
@@ -167,11 +225,14 @@ async def setup_installer(body: InstallerRequest):
             f"#refresh_token={supabase_session.refresh_token}"
         )
 
+    web_payment = _get_web_payment_status(sb, internal_user_id)
+
     return {
         "api_key": api_key,
         "models": model_ids,
         "openclaw_config": openclaw_config,
         "dashboard_url": dashboard_url,
+        "web_payment": web_payment,
         "session": {
             "access_token": supabase_session.access_token,
             "refresh_token": supabase_session.refresh_token,
