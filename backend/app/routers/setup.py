@@ -161,7 +161,9 @@ async def setup_installer(body: InstallerRequest):
         sb = get_supabase()
 
         # --- Single-device enforcement ---
-        # If an older session is still active, revoke it and let this login continue.
+        # Revoke older sessions without replaying the stored refresh token. The
+        # dashboard consumes/rotates refresh tokens client-side, so refreshing the
+        # database copy here can trigger Supabase's token-reuse protection.
         user_row = (
             sb.table("users")
             .select("id, active_refresh_token")
@@ -174,17 +176,11 @@ async def setup_installer(body: InstallerRequest):
         internal_user_id = user_row.data[0]["id"]
         stored_token = user_row.data[0].get("active_refresh_token")
 
-        if stored_token:
+        if stored_token and supabase_session:
             try:
-                check = sb_auth.auth.refresh_session(stored_token)
-                if check.session:
-                    # Revoke prior active session so this login becomes the single active device.
-                    try:
-                        sb_auth.auth.admin.sign_out(check.session.access_token)
-                    except Exception:
-                        pass
-            except AuthApiError:
-                pass  # Stored token is dead — allow login
+                sb.auth.admin.sign_out(supabase_session.access_token, scope="others")
+            except Exception:
+                pass  # Best-effort; this new login should still continue.
 
     # --- Get internal user id (resolved above for login; look up now for register) ---
     if internal_user_id is None:
